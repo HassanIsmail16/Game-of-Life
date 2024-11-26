@@ -249,6 +249,7 @@ void UIController::handleInput(const SDL_Event& event) {
 			this->universe->reset();
 		} else if (hovered_button->getID() == UI::Button::ID::Confirm) {
 			this->universe->setGridSize(this->textboxes[0]->getValue(), this->textboxes[1]->getValue());
+			this->grid_view->recenter();
 		} else if (hovered_button->getID() == UI::Button::ID::Randomize) {
 			int percent = this->textboxes[2]->getValue();
 			this->universe->initialize(this->universe->getWidth(), this->universe->getHeight(), percent);
@@ -266,15 +267,54 @@ void UIController::handleInput(const SDL_Event& event) {
 			} else if (textbox->isFocused()) {
 				textbox->setColor({133, 159, 61, 255});
 				textbox->setFocused(false);
+				std::string current_text = textbox->getText();
+				int value = current_text.empty() ? 5 : std::stoi(current_text);
 
+				// Modify the clamping logic to handle the percentage textbox differently
+				if (textbox == this->textboxes[2]) {  // Assuming the percentage textbox is the third one
+					value = std::clamp(value, 0, 100);
+				} else {
+					value = std::clamp(value, 5, 100000);
+				}
+
+				// Update textbox with clamped value
+				textbox->setText(std::to_string(value));
+				textbox->setFocused(false);
+				// Adjust values after unfocusing
+				adjustGridSizeTextboxValues();
 			}
 		}
 
 		if (textbox->isFocused() && event.type == SDL_TEXTINPUT) {
 			if (isdigit(event.text.text[0])) {
-				int current_value = textbox->getValue();
-				int new_value = std::clamp(current_value * 10 + (event.text.text[0] - '0'), 5, 100000);
-				textbox->setText(std::to_string(new_value));
+				// Get current text
+				std::string current_text = textbox->getText();
+
+				// Additional check for percentage textbox
+				if (textbox == this->textboxes[2]) {  // Assuming the percentage textbox is the third one
+					// Limit to 3 digits for percentage
+					if (current_text.length() < 3) {
+						std::string new_text = current_text + event.text.text[0];
+						int new_value = std::stoi(new_text);
+
+						// Ensure value doesn't exceed 100
+						if (new_value <= 100) {
+							textbox->setText(new_text);
+						}
+					}
+				} else {
+					// Existing logic for other textboxes
+					int other_index = (textbox == this->textboxes[0]) ? 1 : 0;
+					std::string other_text = this->textboxes[other_index]->getText();
+					int max_digits = 7 - other_text.length();
+					max_digits = std::max(max_digits, 1);
+
+					if (current_text.length() < max_digits) {
+						std::string new_text = current_text + event.text.text[0];
+						int new_value = new_text.empty() ? 0 : std::stoi(new_text);
+						textbox->setText(new_text);
+					}
+				}
 			}
 		}
 
@@ -282,7 +322,21 @@ void UIController::handleInput(const SDL_Event& event) {
 			if (event.key.keysym.sym == SDLK_BACKSPACE) {
 				textbox->pop_back();
 			} else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER) {
+				std::string current_text = textbox->getText();
+				int value = current_text.empty() ? 5 : std::stoi(current_text);
+
+				// Modify the clamping logic to handle the percentage textbox differently
+				if (textbox == this->textboxes[2]) {  // Assuming the percentage textbox is the third one
+					value = std::clamp(value, 0, 100);
+				} else {
+					value = std::clamp(value, 5, 100000);
+				}
+
+				// Update textbox with clamped value
+				textbox->setText(std::to_string(value));
 				textbox->setFocused(false);
+				// Adjust values after confirming
+				adjustGridSizeTextboxValues();
 			}
 		}
 	}
@@ -530,3 +584,18 @@ void UIController::help_handleInput(SDL_Event& event) {
 }
 
 
+void UIController::adjustGridSizeTextboxValues() {
+	int width = this->textboxes[0]->getValue();
+	int height = this->textboxes[1]->getValue();
+
+	// Ensure product doesn't exceed 10,000,000
+	while ((long long) width * height > 10000000) {
+		if (width > height) {
+			width--;
+		} else {
+			height--;
+		}
+		this->textboxes[0]->setText(std::to_string(width));
+		this->textboxes[1]->setText(std::to_string(height));
+	}
+}

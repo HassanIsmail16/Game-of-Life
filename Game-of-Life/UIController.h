@@ -36,7 +36,8 @@ private:
 	void closeHelpWindow();
 	void help_RenderText(const char* text, int x, int y);
 	void help_RenderContent();
-
+	
+	void adjustGridSizeTextboxValues();
 
 	Universe* universe;
 	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
