@@ -111,7 +111,7 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 
 	TTF_Font* font = TTF_OpenFont("arialbd.ttf", 16);
 
-	this->size_textboxes.emplace_back(
+	this->textboxes.emplace_back(
 		new UI::NumericTextBox(
 			x_first,
 			6 * margin + 5 * height + 15,
@@ -126,7 +126,7 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 		)
 	);
 
-	this->size_textboxes.emplace_back(
+	this->textboxes.emplace_back(
 		new UI::NumericTextBox(
 			x_first,
 			7 * margin + 6 * height + 35,
@@ -141,7 +141,7 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 		)
 	);
 
-	this->size_textboxes.emplace_back(
+	this->textboxes.emplace_back(
 		new UI::NumericTextBox(
 			x_second,
 			4 * margin + 3 * height + 27,
@@ -180,6 +180,10 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 bool isDialogOpen = false;
 
 void UIController::handleInput(const SDL_Event& event) {
+	if (this->isHelpWindowOpen()) {
+		return;
+	}
+
 	if (this->grid_view->isDrawing()) {
 		if (event.button.button == SDL_BUTTON_LEFT) {
 			return;
@@ -237,13 +241,16 @@ void UIController::handleInput(const SDL_Event& event) {
 			dialog_close_time = SDL_GetTicks();
 			this->universe->exportToFile(filename);
 		} else if (hovered_button->getID() == UI::Button::ID::Help) {
-
+			if (!this->help_window_open) {
+				this->help_window_open = true;
+				this->openHelpWindow();
+			}
 		} else if (hovered_button->getID() == UI::Button::ID::Clear) {
 			this->universe->reset();
 		} else if (hovered_button->getID() == UI::Button::ID::Confirm) {
-			this->universe->setGridSize(this->size_textboxes[0]->getValue(), this->size_textboxes[1]->getValue());
+			this->universe->setGridSize(this->textboxes[0]->getValue(), this->textboxes[1]->getValue());
 		} else if (hovered_button->getID() == UI::Button::ID::Randomize) {
-			int percent = this->size_textboxes[2]->getValue();
+			int percent = this->textboxes[2]->getValue();
 			this->universe->initialize(this->universe->getWidth(), this->universe->getHeight(), percent);
 		}
 
@@ -251,7 +258,7 @@ void UIController::handleInput(const SDL_Event& event) {
 	}
 
 
-	for (auto textbox : this->size_textboxes) {
+	for (auto textbox : this->textboxes) {
 		if (event.button.button == SDL_BUTTON_LEFT && elapsed_time >= this->action_time) {
 			if (textbox->isHovered(mouse_x, mouse_y)) {
 				textbox->setColor({49, 81, 30, 255});
@@ -322,7 +329,7 @@ void UIController::render(SDL_Renderer* renderer) {
 		button->render(renderer);
 	}
 
-	for (auto& textbox : this->size_textboxes) {
+	for (auto& textbox : this->textboxes) {
 		textbox->render(renderer);
 	}
 
@@ -366,6 +373,16 @@ void UIController::handlePlayStopButton() {
 		});
 		play_thread.detach();
 	}
+}
+
+bool UIController::isHelpWindowOpen() {
+	return this->help_window_open;
+}
+
+void UIController::renderHelpWindow() {
+	SDL_RenderClear(this->help_renderer);
+	help_RenderContent();
+	SDL_RenderPresent(this->help_renderer);
 }
 
 std::wstring UIController::openLoadFileDialog() {
@@ -418,9 +435,6 @@ std::wstring UIController::openSaveFileDialog() {
 	return L"";
 }
 
-
-
-
 std::string UIController::convertWStringToString(const std::wstring& wstr) {
 	int len = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
 	std::string str(len, 0);
@@ -438,5 +452,81 @@ void UIController::lockDestructiveButtons(bool locked) {
 	}
 }
 
+void UIController::openHelpWindow() {
+	this->help_window = SDL_CreateWindow("Help", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 400, SDL_WINDOW_SHOWN);
+	this->help_renderer = SDL_CreateRenderer(this->help_window, -1, SDL_RENDERER_ACCELERATED);
+}
+
+void UIController::closeHelpWindow() {
+	SDL_DestroyRenderer(this->help_renderer);
+	SDL_DestroyWindow(this->help_window);
+	this->help_renderer = nullptr;
+	this->help_window = nullptr;
+}
+
+void UIController::help_RenderText(const char* text, int x, int y) {
+	if (text == nullptr || strlen(text) == 0) {
+		return;  // Exit if the text is empty
+	}
+	TTF_Font* font = TTF_OpenFont("arial.ttf", 14);
+	SDL_Color color = {255, 255, 255}; // White color
+	SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
+	SDL_Texture* texture = SDL_CreateTextureFromSurface(help_renderer, surface);
+	SDL_Rect dstRect = {x, y, surface->w, surface->h};
+	SDL_RenderCopy(help_renderer, texture, nullptr, &dstRect);
+
+	SDL_DestroyTexture(texture);
+	SDL_FreeSurface(surface);
+	TTF_CloseFont(font);
+}
+
+void UIController::help_RenderContent() {
+	const char* helpText[] = {
+		"- Make a cell alive by left clicking in its position",
+		"- Make a cell die by right clicking in its position",
+		"- Pan around the grid by moving the mouse while holding down the scroll button",
+		"- Zoom in and out of the grid by moving your mouse's scrollwheel up and down",
+		"- Increase and decrease your brush size by pressing ']' and '[' or moving the scroll wheel up and down while holding ctrl",
+		"- Press the play button to run the simulation",
+		"- Control the playback speed using the slider at the bottom of the side panel",
+		"",
+		"- If a cell is alive and has fewer than 2 alive neighbors it'll die",
+		"- If a cell is alive and has 2 or 3 alive neighbors it'll live",
+		"- If a cell is alive and has more than 3 alive neighbors it'll die",
+		"- If a cell is dead and has exactly three alive neighbors it'll become alive"
+	};
+
+	int yPos = 20;
+	for (int i = 0; i < 12; ++i) {
+		this->help_RenderText(helpText[i], 20, yPos);
+		yPos += 30; // Move down for the next line
+	}
+
+}
+
+void UIController::help_handleInput(SDL_Event& event) {
+	// Handle more event types for the help window
+	switch (event.type) {
+		case SDL_QUIT:
+		closeHelpWindow();
+		this->help_window_open = false;
+		break;
+
+		case SDL_KEYDOWN:
+		// Allow closing help window with ESC key
+		if (event.key.keysym.sym == SDLK_ESCAPE) {
+			closeHelpWindow();
+			this->help_window_open = false;
+		}
+		break;
+
+		case SDL_WINDOWEVENT:
+		if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+			closeHelpWindow();
+			this->help_window_open = false;
+		}
+		break;
+	}
+}
 
 

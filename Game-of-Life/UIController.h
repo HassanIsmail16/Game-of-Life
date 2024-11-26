@@ -4,7 +4,9 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <SDL_image.h>
 #include "GridView.h"
+
 
 class UIController {
 public:
@@ -19,7 +21,10 @@ public:
 	
 	GridView* grid_view; // TODO: encapsulate
 
+	bool isHelpWindowOpen();
+	void renderHelpWindow();
 
+	void help_handleInput(SDL_Event& event);
 private:
 	std::wstring openLoadFileDialog();
 	std::wstring openSaveFileDialog();
@@ -27,11 +32,16 @@ private:
 	void lockDestructiveButtons(bool locked);
 
 
+	void openHelpWindow();
+	void closeHelpWindow();
+	void help_RenderText(const char* text, int x, int y);
+	void help_RenderContent();
+
+
 	Universe* universe;
 	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
 	UI::Slider* speed_slider;
-	std::vector<UI::NumericTextBox*> size_textboxes;
-	// place text label here before slider
+	std::vector<UI::NumericTextBox*> textboxes;
 
 	double action_time = 0.5;
 
@@ -49,5 +59,9 @@ private:
 	std::atomic<bool> grid_resize_requested{false};
 	int requested_width{0};
 	int requested_height{0};
+
+	SDL_Window* help_window = nullptr;
+	SDL_Renderer* help_renderer = nullptr;
+	bool help_window_open = false;
 };
 
