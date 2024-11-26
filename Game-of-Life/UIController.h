@@ -24,11 +24,13 @@ private:
 	std::wstring openLoadFileDialog();
 	std::wstring openSaveFileDialog();
 	std::string convertWStringToString(const std::wstring& wstr);
+	void lockDestructiveButtons(bool locked);
+
 
 	Universe* universe;
 	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
 	UI::Slider* speed_slider;
-	UI::NumericTextBox* width_textbox;
+	std::vector<UI::NumericTextBox*> size_textboxes;
 	// place text label here before slider
 
 	double action_time = 0.5;
@@ -43,5 +45,9 @@ private:
 
 	double generations_per_second = 5.0f;
 	std::atomic<bool> is_playing = false;
+
+	std::atomic<bool> grid_resize_requested{false};
+	int requested_width{0};
+	int requested_height{0};
 };
 

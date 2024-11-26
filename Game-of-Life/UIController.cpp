@@ -91,7 +91,7 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 		new UI::Button(
 			x_first,
 			4 * margin + 3 * height,
-			button_width,
+			button_half_width,
 			height,
 			"Randomize",
 			UI::Button::ID::Randomize
@@ -109,21 +109,57 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 		)
 	);
 
-	this->width_textbox = new UI::NumericTextBox(
-		x_first,
-		6 * margin + 5 * height,
-		button_width,
-		height,
-		5,
-		1e5,
-		this->universe->getWidth(),
-		TTF_OpenFont("C:/Windows/Fonts/verdana.ttf", 16)
+	TTF_Font* font = TTF_OpenFont("arialbd.ttf", 16);
+
+	this->size_textboxes.emplace_back(
+		new UI::NumericTextBox(
+			x_first,
+			6 * margin + 5 * height + 15,
+			button_width,
+			height,
+			5,
+			1e5,
+			this->universe->getWidth(),
+			font,
+			"Grid Width",
+			UI::NumericTextBox::ID::Width
+		)
+	);
+
+	this->size_textboxes.emplace_back(
+		new UI::NumericTextBox(
+			x_first,
+			7 * margin + 6 * height + 35,
+			button_width,
+			height,
+			5,
+			1e5,
+			this->universe->getHeight(),
+			font,
+			"Grid Height",
+			UI::NumericTextBox::ID::Height
+		)
+	);
+
+	this->size_textboxes.emplace_back(
+		new UI::NumericTextBox(
+			x_second,
+			4 * margin + 3 * height + 27,
+			button_half_width,
+			height / 2,
+			0,
+			100,
+			20,
+			font,
+			"% alive",
+			UI::NumericTextBox::ID::Percent
+		)
 	);
 
 	this->buttons.emplace_back(
 		new UI::Button(
 			x_first,
-			8 * margin + 7 * height,
+			8 * margin + 7 * height + 32.5,
 			button_width,
 			height,
 			"Confirm",
@@ -133,9 +169,9 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 
 	this->speed_slider = new UI::Slider(
 		x_first,
-		9 * margin + 8 * height,
+		9 * margin + 8.5 * height + 5,
 		button_width,
-		height
+		height / 2
 	);
 
 
@@ -144,6 +180,14 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 bool isDialogOpen = false;
 
 void UIController::handleInput(const SDL_Event& event) {
+	if (this->grid_view->isDrawing()) {
+		if (event.button.button == SDL_BUTTON_LEFT) {
+			return;
+		} else {
+			this->grid_view->stopDrawing();
+		}
+	}
+
 	static uint32_t dialog_close_time = 0;
 	const uint32_t DIALOG_COOLDOWN = 200;
 
@@ -157,11 +201,12 @@ void UIController::handleInput(const SDL_Event& event) {
 	UI::Button* hovered_button = nullptr;
 
 	for (auto& button : this->buttons) {
+		if (button->isLocked()) continue;
 		if (button->isHovered(mouse_x, mouse_y)) {
-			button->setColor(SDL_Color{0, 0, 0, 255});
+			button->setColor(SDL_Color{49, 81, 30, 255});
 			hovered_button = button;
 		} else {
-			button->setColor(SDL_Color{250, 0, 250, 255});
+			button->setColor(SDL_Color{133, 159, 62, 255});
 		}
 	}
 
@@ -171,10 +216,14 @@ void UIController::handleInput(const SDL_Event& event) {
 	if (hovered_button && event.button.button == SDL_BUTTON_LEFT && elapsed_time >= this->action_time) {
 		if (hovered_button->getID() == UI::Button::ID::Play) {
 			this->handlePlayStopButton();
+			hovered_button->setText("Stop");
 			hovered_button->setID(UI::Button::ID::Stop);
+			this->lockDestructiveButtons(true);
 		} else if (hovered_button->getID() == UI::Button::ID::Stop) {
 			this->handlePlayStopButton();
+			hovered_button->setText("Play");
 			hovered_button->setID(UI::Button::ID::Play);
+			this->lockDestructiveButtons(false);
 		} else if (hovered_button->getID() == UI::Button::ID::Next) {
 			this->universe->nextGeneration();
 		} else if (hovered_button->getID() == UI::Button::ID::Recenter) {
@@ -191,16 +240,50 @@ void UIController::handleInput(const SDL_Event& event) {
 
 		} else if (hovered_button->getID() == UI::Button::ID::Clear) {
 			this->universe->reset();
+		} else if (hovered_button->getID() == UI::Button::ID::Confirm) {
+			this->universe->setGridSize(this->size_textboxes[0]->getValue(), this->size_textboxes[1]->getValue());
+		} else if (hovered_button->getID() == UI::Button::ID::Randomize) {
+			int percent = this->size_textboxes[2]->getValue();
+			this->universe->initialize(this->universe->getWidth(), this->universe->getHeight(), percent);
 		}
 
 		this->last_button_press = current_time;
+	}
 
+
+	for (auto textbox : this->size_textboxes) {
+		if (event.button.button == SDL_BUTTON_LEFT && elapsed_time >= this->action_time) {
+			if (textbox->isHovered(mouse_x, mouse_y)) {
+				textbox->setColor({49, 81, 30, 255});
+				textbox->setFocused(true);
+			} else if (textbox->isFocused()) {
+				textbox->setColor({133, 159, 61, 255});
+				textbox->setFocused(false);
+
+			}
+		}
+
+		if (textbox->isFocused() && event.type == SDL_TEXTINPUT) {
+			if (isdigit(event.text.text[0])) {
+				int current_value = textbox->getValue();
+				int new_value = std::clamp(current_value * 10 + (event.text.text[0] - '0'), 5, 100000);
+				textbox->setText(std::to_string(new_value));
+			}
+		}
+
+		if (textbox->isFocused() && event.type == SDL_KEYDOWN) {
+			if (event.key.keysym.sym == SDLK_BACKSPACE) {
+				textbox->pop_back();
+			} else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_KP_ENTER) {
+				textbox->setFocused(false);
+			}
+		}
 	}
 
 	if (this->speed_slider->isKnobHovered(mouse_x, mouse_y)) {
-		this->speed_slider->setKnobColor(SDL_Color{ 0, 0, 0, 255 });
+		this->speed_slider->setKnobColor(SDL_Color{ 49, 81, 30, 255 });
 	} else {
-		this->speed_slider->setKnobColor(SDL_Color{ 250, 0, 250, 255 });
+		this->speed_slider->setKnobColor(SDL_Color{ 133, 159, 61, 255 });
 	}
 
 	if (event.type == SDL_MOUSEMOTION) {
@@ -231,15 +314,17 @@ void UIController::render(SDL_Renderer* renderer) {
 		this->window_height
 	};
 
-	SDL_SetRenderDrawColor(renderer, 150, 150, 200, 255);
+	SDL_SetRenderDrawColor(renderer, 249, 252, 223, 255);
 	SDL_RenderFillRect(renderer, &panel);
 
 
-	for (auto button : this->buttons) {
+	for (auto& button : this->buttons) {
 		button->render(renderer);
 	}
 
-	this->width_textbox->render(renderer);
+	for (auto& textbox : this->size_textboxes) {
+		textbox->render(renderer);
+	}
 
 	this->speed_slider->render(renderer);
 }
@@ -250,6 +335,11 @@ int UIController::getPanelWidth() {
 
 void UIController::play() {
 	while (this->is_playing.load()) {
+		if (this->grid_resize_requested.load()) {
+			this->universe->setGridSize(this->requested_width, this->requested_height);
+			this->grid_resize_requested.store(false);
+		}
+
 		auto start_time = std::chrono::steady_clock::now();
 
 		this->universe->nextGeneration();
@@ -336,6 +426,16 @@ std::string UIController::convertWStringToString(const std::wstring& wstr) {
 	std::string str(len, 0);
 	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], len, nullptr, nullptr);
 	return str;
+}
+
+void UIController::lockDestructiveButtons(bool locked) {
+	for (auto button : this->buttons) {
+		if (button->getID() == UI::Button::ID::Load || button->getID() == UI::Button::ID::Export
+			|| button->getID() == UI::Button::ID::Next || button->getID() == UI::Button::ID::Randomize
+			|| button->getID() == UI::Button::ID::Confirm) {
+			button->setLocked(locked);
+		}
+	}
 }
 
 

@@ -5,7 +5,7 @@
 class GridView {
 public:
 	GridView(Universe* universe);
-	void render(SDL_Renderer* renderer, const Universe& universe, int ui_panel_width);
+	void render(SDL_Renderer* renderer, Universe& universe, int ui_panel_width);
 	void resize(int width, int height, const Universe& universe);
 	void recenter();
 	void zoom(float zoom_delta, int mouse_x, int mouse_y, int width, int height);
@@ -22,6 +22,8 @@ public:
 	void increaseBrushSize();
 	void decreaseBrushSize();
 	void onWindowResize(int window_width, int window_height);
+
+	bool isDrawing();
 
 private:
 	Universe* universe;

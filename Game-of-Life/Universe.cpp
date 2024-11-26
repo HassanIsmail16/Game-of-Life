@@ -37,6 +37,7 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 }
 
 void Universe::nextGeneration() {
+	//std::lock_guard<std::mutex> lock(grid_mutex);
 	auto new_grid = this->grid;
 
 	for (int i = 0; i < this->getHeight(); i++) {
@@ -57,37 +58,20 @@ void Universe::nextGeneration() {
 	this->grid = std::move(new_grid);
 }
 
-void Universe::run(int steps) {
-	for (int i = 0; i < steps; i++) {
-		this->nextGeneration();
-	}
-}
-
-void Universe::play() {
-	
-}
-
-void Universe::pause() {
-
-}
-
-void Universe::setPlaybackSpeed(int speed) {
-
-}
-
-int Universe::getPlaybackSpeed() const {
-	return 0;
-}
-
 void Universe::setCellState(int cell_x, int cell_y, CellState state) {
 	this->grid[cell_y][cell_x] = state;
 }
 
 CellState Universe::getCellState(int cell_x, int cell_y) const {
-	return this->grid[cell_y][cell_x];
+	std::lock_guard<std::mutex> lock(grid_mutex);
+	if (cell_x >= 0 && cell_x < this->getWidth() && cell_y >= 0 && cell_y <= this->getHeight()) {
+		return this->grid[cell_y][cell_x];
+	}
+	return CellState::Dead;
 }
 
 int Universe::getWidth() const {
+	if (this->grid.empty()) return 0;
 	return this->grid.front().size();
 }
 
@@ -162,6 +146,53 @@ void Universe::display() {
 			std::cout << (cell == CellState::Alive ? "1" : "0") << ' ';
 		}
 		std::cout << std::endl;
+	}
+}
+
+void Universe::setGridSize(int width, int height) {
+	// Sanity checks
+	if (width <= 0 || height <= 0) {
+		std::cerr << "Invalid grid size: width=" << width << ", height=" << height << std::endl;
+		return;
+	}
+
+	//std::lock_guard<std::mutex> lock(grid_mutex);
+
+	try {
+		// Ensure we have a safe way to create an empty grid
+		auto copy = this->createEmptyGrid(width, height);
+
+		// Safe copying with bounds checking
+		int copy_height = std::min(this->getHeight(), height);
+		int copy_width = std::min(this->getWidth(), width);
+
+		// Debug logging
+		std::cerr << "Resizing grid: Old size="
+			<< this->getWidth() << "x" << this->getHeight()
+			<< " New size=" << width << "x" << height
+			<< " Copying area=" << copy_width << "x" << copy_height
+			<< std::endl;
+
+		for (int i = 0; i < copy_height; i++) {
+			for (int j = 0; j < copy_width; j++) {
+				copy[i][j] = this->grid[i][j];
+			}
+		}
+
+		// Move the new grid
+		this->grid = std::move(copy);
+
+		// Verify new size
+		if (this->getWidth() != width || this->getHeight() != height) {
+			std::cout << "Grid resize failed: Actual size="
+				<< this->getWidth() << "x" << this->getHeight()
+				<< " Expected=" << width << "x" << height
+				<< std::endl;
+		}
+	} catch (const std::exception& e) {
+		std::cout << "Exception during grid resize: " << e.what() << std::endl;
+	} catch (...) {
+		std::cout << "Unknown exception during grid resize" << std::endl;
 	}
 }
 

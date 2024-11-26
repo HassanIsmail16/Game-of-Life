@@ -40,12 +40,13 @@ namespace UI {
 		Button(int x, int y, int width, int height, std::string text, ID id);
 		void render(SDL_Renderer* renderer);
 		bool isHovered(int mouse_x, int mouse_y);
-		void changeText(std::string text);
+		void setText(std::string text);
 		void onResize(int width, int height);
 		void setColor(SDL_Color color);
 		void setID(ID id);
 		ID getID();
-
+		void setLocked(bool locked);
+		bool isLocked();
 
 	private:
 		int x;
@@ -54,7 +55,9 @@ namespace UI {
 		int height;
 		std::string text;
 		SDL_Color color;
+		SDL_Color font_color;
 		ID id;
+		bool locked = false;
 	};
 
 	class Slider {
@@ -81,7 +84,13 @@ namespace UI {
 
 	class NumericTextBox {
 	public:
-		NumericTextBox(int x, int y, int width, int height, int min, int max, int value, TTF_Font* font);
+		enum class ID {
+			Width,
+			Height,
+			Percent
+		};
+
+		NumericTextBox(int x, int y, int width, int height, int min, int max, int value, TTF_Font* font, std::string label, ID id);
 
 		void render(SDL_Renderer* renderer);
 		bool isHovered(int mouse_x, int mouse_y);
@@ -90,8 +99,12 @@ namespace UI {
 		int getValue();
 		bool isValidText(std::string text);
 		void setText(std::string text);
-
-
+		void push_back(char ch);
+		void pop_back();
+		std::string getText();
+		void setColor(SDL_Color color);
+		ID getID();
+		
 	private:
 		int x;
 		int y;
@@ -100,6 +113,7 @@ namespace UI {
 		int min;
 		int max;
 		int value;
+		ID id;
 		TTF_Font* font;
 		std::string label;
 		std::string text;
