@@ -91,6 +91,13 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 			UI::Button::ID::Clear
 		)
 	);
+
+	this->speed_slider = new UI::Slider(
+		window_width - this->panel_width + margin,
+		8 * margin + 7 * height,
+		this->panel_width - 2 * margin,
+		height
+	);
 }
 
 bool isDialogOpen = false;
@@ -122,10 +129,10 @@ void UIController::handleInput(const SDL_Event& event) {
 
 	if (hovered_button && event.button.button == SDL_BUTTON_LEFT && elapsed_time >= this->action_time) {
 		if (hovered_button->getID() == UI::Button::ID::Play) {
-
+			this->handlePlayStopButton();
 			hovered_button->setID(UI::Button::ID::Stop);
 		} else if (hovered_button->getID() == UI::Button::ID::Stop) {
-
+			this->handlePlayStopButton();
 			hovered_button->setID(UI::Button::ID::Play);
 		} else if (hovered_button->getID() == UI::Button::ID::Next) {
 			this->universe->nextGeneration();
@@ -146,6 +153,22 @@ void UIController::handleInput(const SDL_Event& event) {
 		}
 
 		this->last_button_press = current_time;
+
+	}
+
+	if (this->speed_slider->isKnobHovered(mouse_x, mouse_y)) {
+		this->speed_slider->setKnobColor(SDL_Color{ 0, 0, 0, 255 });
+	} else {
+		this->speed_slider->setKnobColor(SDL_Color{ 250, 0, 250, 255 });
+	}
+
+	if (event.type == SDL_MOUSEMOTION) {
+		if (event.motion.state & SDL_BUTTON_LMASK) {
+			if (this->speed_slider->isBodyHovered(mouse_x, mouse_y)) {
+				this->speed_slider->setKnobPosition(mouse_x);
+				this->generations_per_second = this->speed_slider->getValue();
+			}
+		}
 	}
 }
 
@@ -174,10 +197,42 @@ void UIController::render(SDL_Renderer* renderer) {
 	for (auto button : this->buttons) {
 		button->render(renderer);
 	}
+
+	this->speed_slider->render(renderer);
 }
 
 int UIController::getPanelWidth() {
 	return this->panel_width;
+}
+
+void UIController::play() {
+	while (this->is_playing.load()) {
+		auto start_time = std::chrono::steady_clock::now();
+
+		this->universe->nextGeneration();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(
+			static_cast<int>(1000 / this->generations_per_second))
+		);
+
+		auto end_time = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+		if (elapsed_time < (1000 / this->generations_per_second)) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((1000 / this->generations_per_second)) - elapsed_time));
+		}
+	}
+}
+
+void UIController::handlePlayStopButton() {
+	if (this->is_playing.load()) {
+		this->is_playing.store(false);
+	} else {
+		this->is_playing.store(true);
+		std::thread play_thread([this]() {
+			this->play();
+		});
+		play_thread.detach();
+	}
 }
 
 std::wstring UIController::openLoadFileDialog() {

@@ -57,14 +57,23 @@ namespace UI {
 
 	class Slider {
 	public:
-		Slider(int x, int y, int width, int height, int min, int max, int value);
+		Slider(int x, int y, int width, int height, int min = 1, int max = 50, int value = 5);
 		void render(SDL_Renderer* renderer);
 		bool isKnobHovered(int mouse_x, int mouse_y);
 		bool isBodyHovered(int mouse_x, int mouse_y);
-
-
+		void setValue(int value);
+		int getValue();
+		void setKnobPosition(int mouse_x);
+		SDL_Rect getKnobRect();
+		void setKnobColor(SDL_Color color);
 	private:
-		// knob
-		// body
+		int x;
+		int y;
+		int width;
+		int height;
+		int min;
+		int max;
+		int value;
+		SDL_Color knob_color;
 	};
 }

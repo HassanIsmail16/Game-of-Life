@@ -13,8 +13,18 @@ void InputHandler::handleInput(const SDL_Event& event, int width, int height) {
     SDL_ShowCursor(SDL_DISABLE);
     // Zooming with mouse wheel
     if (event.type == SDL_MOUSEWHEEL) {
-        float zoom_delta = event.wheel.y > 0 ? 0.2f : -0.2f;
-        this->grid_view->zoom(zoom_delta, mouse_x, mouse_y, width, height);
+        auto keystate = SDL_GetKeyboardState(nullptr);
+        
+        if (keystate[SDL_SCANCODE_LCTRL]) {
+            if (event.wheel.y > 0) {
+                this->grid_view->increaseBrushSize();
+            } else {
+                this->grid_view->decreaseBrushSize();
+            }
+        } else {
+            float zoom_delta = event.wheel.y > 0 ? 0.2f : -0.2f;
+            this->grid_view->zoom(zoom_delta, mouse_x, mouse_y, width, height);
+        }
     }
 
     // Mouse button down handling
@@ -41,9 +51,6 @@ void InputHandler::handleInput(const SDL_Event& event, int width, int height) {
 
     // Mouse motion handling (for continuous drawing while holding down the button)
     if (event.type == SDL_MOUSEMOTION) {
-        int mouse_x, mouse_y;
-        SDL_GetMouseState(&mouse_x, &mouse_y);
-
         if (event.motion.state & SDL_BUTTON_LMASK) {
             // Left button is held down (continue drawing as alive cells)
             this->grid_view->setStateAtBrush(CellState::Alive);

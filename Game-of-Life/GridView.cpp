@@ -77,8 +77,8 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 
 
 void GridView::recenter() {
-	this->offset_x = (this->window_width - this->cell_size * 100) / 2;
-	this->offset_y = (this->window_height - this->cell_size * 100) / 2;
+	this->offset_x = (this->window_width - this->cell_size * this->universe->getWidth()) / 2;
+	this->offset_y = (this->window_height - this->cell_size * this->universe->getHeight()) / 2;
 }
 
 void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width, int window_height) {
@@ -106,7 +106,7 @@ void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width
 	this->offset_y = mouse_y - post_zoom_screen_y;
 
 	// Calculate grid dimensions
-	int universe_width = 100, universe_height = 100;
+	int universe_width = this->universe->getWidth(), universe_height = this->universe->getHeight();
 	int grid_width = universe_width * this->cell_size;
 	int grid_height = universe_height * this->cell_size;
 
@@ -143,7 +143,7 @@ void GridView::updateDrag(int mouse_x, int mouse_y, int window_width, int window
 	if (!this->is_dragging) return;
 
 	// Calculate grid dimensions
-	int universe_width = 100, universe_height = 100;
+	int universe_width = this->universe->getWidth(), universe_height = this->universe->getHeight();
 	int grid_width = universe_width * this->cell_size;
 	int grid_height = universe_height * this->cell_size;
 
@@ -179,7 +179,7 @@ void GridView::setCellState(int mouse_x, int mouse_y, CellState state) {
 	int cell_x = (mouse_x - this->offset_x) / this->cell_size;
 	int cell_y = (mouse_y - this->offset_y) / this->cell_size;
 
-	if (cell_x < 0 || cell_x >= 100 || cell_y < 0 || cell_y >= 100) {
+	if (cell_x < 0 || cell_x >= this->universe->getWidth() || cell_y < 0 || cell_y >= this->universe->getHeight()) {
 		return;
 	}
 
@@ -197,7 +197,7 @@ void GridView::setStateAtBrush(CellState state) {
 			int cell_x = (brush_left + x * this->cell_size - this->offset_x) / this->cell_size;
 			int cell_y = (brush_top + y * this->cell_size - this->offset_y) / this->cell_size;
 
-			if (cell_x >= 0 && cell_x < 100 && cell_y >= 0 && cell_y < 100) {
+			if (cell_x >= 0 && cell_x < this->universe->getWidth() && cell_y >= 0 && cell_y < this->universe->getHeight()) {
 				this->universe->setCellState(cell_x, cell_y, state);
 			}
 		}

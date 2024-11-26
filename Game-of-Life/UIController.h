@@ -1,6 +1,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <thread>
+#include <atomic>
+#include <chrono>
 #include "GridView.h"
 
 class UIController {
@@ -11,6 +14,9 @@ public:
 	bool isInsidePanel(int mouse_x, int mouse_y);
 	void render(SDL_Renderer* renderer);
 	int getPanelWidth();
+	void play();
+	void handlePlayStopButton();
+	
 	GridView* grid_view; // TODO: encapsulate
 
 
@@ -33,5 +39,8 @@ private:
 	uint32_t last_button_press = 0;
 	bool ignore_next_event = false;
 	bool isDialogOpen = false;
+
+	double generations_per_second = 5.0f;
+	std::atomic<bool> is_playing = false;
 };
 
