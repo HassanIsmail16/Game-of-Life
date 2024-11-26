@@ -2,6 +2,7 @@
 #include "Universe.h"
 #include "InputHandler.h"
 #include "UIController.h"
+#include <iostream>
 
 
 int main(int argc, char* argv[]) {
@@ -9,7 +10,7 @@ int main(int argc, char* argv[]) {
 	SDL_Window* window = SDL_CreateWindow("Game of Life", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 0);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
-	Universe universe(100, 100, 0);
+	Universe universe(10, 20, 0);
 	GridView view(&universe);
 	UIController ui_ctrl(&universe, 800, 600, &view);
 	InputHandler input_handler(&ui_ctrl, &view, &universe);
@@ -25,10 +26,8 @@ int main(int argc, char* argv[]) {
 				ui_ctrl.handleInput(event);
 			}
 		}
-
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
-
 
 		view.render(renderer, universe, 200);
 		view.renderBrush(renderer);

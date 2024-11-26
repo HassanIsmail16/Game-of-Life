@@ -15,22 +15,27 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 	this->panel_width = window_width / 4;
 	int margin = std::min(this->panel_width / 20, window_height / 20);
 	float height = window_height / 8 - 2 * margin;
+	float button_width = this->panel_width - 2 * margin;
+	float button_half_width = this->panel_width / 2 - 1.5 * margin;
+	float x_first = window_width - this->panel_width + margin;
+	float x_second = x_first + margin + button_half_width;
 
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
+			x_first,
 			margin,
-			this->panel_width - 2 * margin,
+			button_half_width,
 			height,
 			"Play",
 			UI::Button::ID::Play
 		)
 	);
+
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			2 * margin + height,
-			this->panel_width - 2 * margin,
+			x_second,
+			margin,
+			button_half_width,
 			height,
 			"Next",
 			UI::Button::ID::Next
@@ -39,9 +44,9 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			3 * margin + 2 * height,
-			this->panel_width - 2 * margin,
+			x_first,
+			2 * margin + height,
+			button_half_width,
 			height,
 			"Recenter",
 			UI::Button::ID::Recenter
@@ -50,9 +55,20 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 	
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			4 * margin + 3 * height,
-			this->panel_width - 2 * margin,
+			x_second,
+			2 * margin + height,
+			button_half_width,
+			height,
+			"Clear",
+			UI::Button::ID::Clear
+		)
+	);
+
+	this->buttons.emplace_back(
+		new UI::Button(
+			x_first,
+			3 * margin + 2 * height,
+			button_half_width,
 			height,
 			"Load",
 			UI::Button::ID::Load
@@ -61,43 +77,68 @@ UIController::UIController(Universe* universe, int window_width, int window_heig
 
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			5 * margin + 4 * height,
-			this->panel_width - 2 * margin,
+			x_second,
+			3 * margin + 2 * height,
+			button_half_width,
 			height,
 			"Export",
 			UI::Button::ID::Export
 		)
 	);
 
+
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			6 * margin + 5 * height,
-			this->panel_width - 2 * margin,
+			x_first,
+			4 * margin + 3 * height,
+			button_width,
+			height,
+			"Randomize",
+			UI::Button::ID::Randomize
+		)
+	);
+
+	this->buttons.emplace_back(
+		new UI::Button(
+			x_first,
+			5 * margin + 4 * height,
+			button_width,
 			height,
 			"Help",
 			UI::Button::ID::Help
 		)
 	);
 
+	this->width_textbox = new UI::NumericTextBox(
+		x_first,
+		6 * margin + 5 * height,
+		button_width,
+		height,
+		5,
+		1e5,
+		this->universe->getWidth(),
+		TTF_OpenFont("C:/Windows/Fonts/verdana.ttf", 16)
+	);
+
 	this->buttons.emplace_back(
 		new UI::Button(
-			window_width - this->panel_width + margin,
-			7 * margin + 6 * height,
-			this->panel_width - 2 * margin,
+			x_first,
+			8 * margin + 7 * height,
+			button_width,
 			height,
-			"Help",
-			UI::Button::ID::Clear
+			"Confirm",
+			UI::Button::ID::Confirm
 		)
 	);
 
 	this->speed_slider = new UI::Slider(
-		window_width - this->panel_width + margin,
-		8 * margin + 7 * height,
-		this->panel_width - 2 * margin,
+		x_first,
+		9 * margin + 8 * height,
+		button_width,
 		height
 	);
+
+
 }
 
 bool isDialogOpen = false;
@@ -197,6 +238,8 @@ void UIController::render(SDL_Renderer* renderer) {
 	for (auto button : this->buttons) {
 		button->render(renderer);
 	}
+
+	this->width_textbox->render(renderer);
 
 	this->speed_slider->render(renderer);
 }

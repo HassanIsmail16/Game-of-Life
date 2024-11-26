@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 #include <SDL.h>
-
+#include <SDL_ttf.h>
 
 
 namespace UI {
@@ -32,7 +32,9 @@ namespace UI {
 			Load,
 			Export,
 			Help,
-			Clear
+			Clear,
+			Randomize,
+			Confirm
 		};
 
 		Button(int x, int y, int width, int height, std::string text, ID id);
@@ -75,5 +77,33 @@ namespace UI {
 		int max;
 		int value;
 		SDL_Color knob_color;
+	};
+
+	class NumericTextBox {
+	public:
+		NumericTextBox(int x, int y, int width, int height, int min, int max, int value, TTF_Font* font);
+
+		void render(SDL_Renderer* renderer);
+		bool isHovered(int mouse_x, int mouse_y);
+		bool isFocused();
+		void setFocused(bool is_focused);
+		int getValue();
+		bool isValidText(std::string text);
+		void setText(std::string text);
+
+
+	private:
+		int x;
+		int y;
+		int width;
+		int height;
+		int min;
+		int max;
+		int value;
+		TTF_Font* font;
+		std::string label;
+		std::string text;
+		bool is_focused;
+		SDL_Color color;
 	};
 }

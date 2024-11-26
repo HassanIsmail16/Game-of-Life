@@ -20,6 +20,7 @@ GridView::GridView(Universe* universe) {
 	this->brush_y = -1;
 	this->window_width = 800;
 	this->window_height = 600;
+	this->recenter();
 }
 
 
@@ -36,7 +37,7 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 	for (int x = 0; x <= cols; x++) {
 		int screen_x = this->offset_x + x * this->cell_size;
 
-		if (screen_x >= render_width) break; // Stop rendering grid lines past the panel
+		if (screen_x < 0 || screen_x >= render_width) continue; // Skip lines out of render bounds
 		SDL_RenderDrawLine(renderer, screen_x, this->offset_y, screen_x, this->offset_y + rows * this->cell_size);
 	}
 
@@ -44,8 +45,8 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 	for (int y = 0; y <= rows; y++) {
 		int screen_y = this->offset_y + y * this->cell_size;
 
-		if (screen_y >= render_height) break; // Stop rendering past the window height
-		SDL_RenderDrawLine(renderer, this->offset_x, screen_y, render_width, screen_y);
+		if (screen_y < 0 || screen_y >= render_height) continue; // Skip lines out of render bounds
+		SDL_RenderDrawLine(renderer, this->offset_x, screen_y, this->offset_x + cols * this->cell_size, screen_y);
 	}
 
 	// Render alive cells
@@ -54,10 +55,10 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 			int screen_x = this->offset_x + col * this->cell_size;
 			int screen_y = this->offset_y + row * this->cell_size;
 
-			// Check if any part of the cell is within the render area
+			// Skip cells completely out of bounds
 			if (screen_x + this->cell_size <= 0 || screen_x >= render_width ||
 				screen_y + this->cell_size <= 0 || screen_y >= render_height) {
-				continue; // Skip cells that are entirely out of bounds
+				continue;
 			}
 
 			// If the cell is alive, render it
@@ -71,13 +72,13 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 				SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // alive cell color (green)
 				SDL_RenderFillRect(renderer, &cell_rect);
 			}
+
 		}
 	}
 }
 
-
 void GridView::recenter() {
-	this->offset_x = (this->window_width - this->cell_size * this->universe->getWidth()) / 2;
+	this->offset_x = (this->window_width  - this->window_width / 4.0f - this->cell_size * this->universe->getWidth()) / 2;
 	this->offset_y = (this->window_height - this->cell_size * this->universe->getHeight()) / 2;
 }
 
@@ -183,7 +184,7 @@ void GridView::setCellState(int mouse_x, int mouse_y, CellState state) {
 		return;
 	}
 
-	this->universe->setCellState(cell_x, cell_y, state);
+	this->universe->setCellState(cell_y, cell_x, state);
 }
 
 void GridView::setStateAtBrush(CellState state) {
@@ -197,7 +198,9 @@ void GridView::setStateAtBrush(CellState state) {
 			int cell_x = (brush_left + x * this->cell_size - this->offset_x) / this->cell_size;
 			int cell_y = (brush_top + y * this->cell_size - this->offset_y) / this->cell_size;
 
-			if (cell_x >= 0 && cell_x < this->universe->getWidth() && cell_y >= 0 && cell_y < this->universe->getHeight()) {
+			// Ensure cell indices are within valid bounds
+			if (cell_x >= 0 && cell_x < this->universe->getWidth() &&
+				cell_y >= 0 && cell_y < this->universe->getHeight()) {
 				this->universe->setCellState(cell_x, cell_y, state);
 			}
 		}

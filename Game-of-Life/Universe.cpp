@@ -9,8 +9,8 @@ Universe::Universe(int width, int height, int percent) {
 }
 
 void Universe::reset() {
-	for (int i = 0; i < this->getWidth(); i++) {
-		for (int j = 0; j < this->getHeight(); j++) {
+	for (int i = 0; i < this->getHeight(); i++) {
+		for (int j = 0; j < this->getWidth(); j++) {
 			this->grid[i][j] = CellState::Dead;
 		}
 	}
@@ -24,7 +24,7 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 			if (i == cell_y && j == cell_x) {
 				continue;
 			}
-			if (i < 0 || i >= this->getWidth() || j < 0 || j >= this->getHeight()) {
+			if (i < 0 || i >= this->getHeight() || j < 0 || j >= this->getWidth()) {
 				continue;
 			}
 			if (this->grid[i][j] == CellState::Alive) {
@@ -80,11 +80,11 @@ int Universe::getPlaybackSpeed() const {
 }
 
 void Universe::setCellState(int cell_x, int cell_y, CellState state) {
-	this->grid[cell_x][cell_y] = state;
+	this->grid[cell_y][cell_x] = state;
 }
 
 CellState Universe::getCellState(int cell_x, int cell_y) const {
-	return this->grid[cell_x][cell_y];
+	return this->grid[cell_y][cell_x];
 }
 
 int Universe::getWidth() const {
@@ -104,14 +104,15 @@ void Universe::loadFromFile(std::string& filename) {
 
 	int width = 0, height = 0;
 	if (!(file >> width >> height)) {
-		throw std::runtime_error("Failed to read grid dimensions");
+		std::cout << "couldn't read width and height" << std::endl;
+		return;
 	}
 
 	// Consume the newline after dimensions
 	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
 	// Create a temporary 2D vector to store transposed data
-	std::vector<std::vector<CellState>> temp_grid(width, std::vector<CellState>(height, CellState::Dead));
+	std::vector<std::vector<CellState>> temp_grid(height, std::vector<CellState>(width, CellState::Dead));
 
 	std::string current_line;
 	int row = 0;
@@ -123,15 +124,10 @@ void Universe::loadFromFile(std::string& filename) {
 
 		// Ensure we don't exceed grid dimensions
 		for (int col = 0; col < std::min(static_cast<int>(current_line.length()), width); col++) {
-			temp_grid[col][row] = (current_line[col] == '1') ? CellState::Alive : CellState::Dead;
+			temp_grid[row][col] = (current_line[col] == '1') ? CellState::Alive : CellState::Dead;
 		}
 
 		row++;
-	}
-
-	// Ensure we filled the entire grid
-	if (row < height) {
-		throw std::runtime_error("Not enough lines in file to fill grid");
 	}
 
 	// Move the transposed grid

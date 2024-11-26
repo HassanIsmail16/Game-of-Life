@@ -28,6 +28,7 @@ private:
 	Universe* universe;
 	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
 	UI::Slider* speed_slider;
+	UI::NumericTextBox* width_textbox;
 	// place text label here before slider
 
 	double action_time = 0.5;
