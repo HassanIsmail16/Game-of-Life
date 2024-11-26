@@ -54,12 +54,13 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 			int screen_x = this->offset_x + col * this->cell_size;
 			int screen_y = this->offset_y + row * this->cell_size;
 
-			// Skip cells outside the rendering area
-			if (screen_x + this->cell_size > render_width || screen_x < 0 ||
-				screen_y + this->cell_size > render_height || screen_y < 0) {
-				continue;
+			// Check if any part of the cell is within the render area
+			if (screen_x + this->cell_size <= 0 || screen_x >= render_width ||
+				screen_y + this->cell_size <= 0 || screen_y >= render_height) {
+				continue; // Skip cells that are entirely out of bounds
 			}
 
+			// If the cell is alive, render it
 			if (universe.getCellState(col, row) == CellState::Alive) {
 				SDL_Rect cell_rect = {
 					screen_x,
@@ -72,6 +73,12 @@ void GridView::render(SDL_Renderer* renderer, const Universe& universe, int ui_p
 			}
 		}
 	}
+}
+
+
+void GridView::recenter() {
+	this->offset_x = (this->window_width - this->cell_size * 100) / 2;
+	this->offset_y = (this->window_height - this->cell_size * 100) / 2;
 }
 
 void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width, int window_height) {

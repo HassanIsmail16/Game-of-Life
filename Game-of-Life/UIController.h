@@ -5,24 +5,33 @@
 
 class UIController {
 public:
-	UIController(int window_width, int window_height, GridView* grid_view) : window_width(window_width), window_height(window_height), grid_view(grid_view), panel_width(100) {}
+	UIController(Universe* universe, int window_width, int window_height, GridView* grid_view);
+	void handleInput(const SDL_Event& event);
 	void onWindowResize(int window_width, int window_height);
 	bool isInsidePanel(int mouse_x, int mouse_y);
 	void render(SDL_Renderer* renderer);
 	int getPanelWidth();
 	GridView* grid_view; // TODO: encapsulate
+
+
 private:
-	std::vector<UI::Button*> buttons;
-	std::vector<UI::Slider*> sliders;
+	std::wstring openLoadFileDialog();
+	std::wstring openSaveFileDialog();
+	std::string convertWStringToString(const std::wstring& wstr);
+
+	Universe* universe;
+	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
+	UI::Slider* speed_slider;
 	// place text label here before slider
-	// place text label before radio buttons
-	UI::RadioButton* draw_live_rb;
-	UI::RadioButton* draw_dead_rb;
-	UI::RadioButton* draw_toggle_rb;
-	// place text label before size slider
+
+	double action_time = 0.5;
 
 	int panel_width;
 	int window_width;
 	int window_height;
+
+	uint32_t last_button_press = 0;
+	bool ignore_next_event = false;
+	bool isDialogOpen = false;
 };
 

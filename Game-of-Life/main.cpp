@@ -9,9 +9,9 @@ int main(int argc, char* argv[]) {
 	SDL_Window* window = SDL_CreateWindow("Game of Life", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, 0);
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
-	Universe universe(100, 100, 10);
+	Universe universe(100, 100, 0);
 	GridView view(&universe);
-	UIController ui_ctrl(800, 600, &view);
+	UIController ui_ctrl(&universe, 800, 600, &view);
 	InputHandler input_handler(&ui_ctrl, &view, &universe);
 
 	bool is_running = true;
@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
 				is_running = false;
 			} else {
 				input_handler.handleInput(event, 800, 600);
+				ui_ctrl.handleInput(event);
 			}
 		}
 
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
 		SDL_RenderClear(renderer);
 
 
-		view.render(renderer, universe, 100);
+		view.render(renderer, universe, 200);
 		view.renderBrush(renderer);
 		ui_ctrl.render(renderer);
 		SDL_RenderPresent(renderer);

@@ -6,6 +6,7 @@ void InputHandler::handleInput(const SDL_Event& event, int width, int height) {
 
     if (this->ui_ctrl->isInsidePanel(mouse_x, mouse_y)) {
         SDL_ShowCursor(SDL_ENABLE);
+        this->grid_view->setBrushPosition(-1, -1);
         return;
     }
 
@@ -18,9 +19,6 @@ void InputHandler::handleInput(const SDL_Event& event, int width, int height) {
 
     // Mouse button down handling
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        int mouse_x, mouse_y;
-        SDL_GetMouseState(&mouse_x, &mouse_y);
-
         if (event.button.button == SDL_BUTTON_MIDDLE) {
             this->grid_view->startDrag(mouse_x, mouse_y);
         } else if (event.button.button == SDL_BUTTON_LEFT) {

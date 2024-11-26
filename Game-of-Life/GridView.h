@@ -7,6 +7,7 @@ public:
 	GridView(Universe* universe);
 	void render(SDL_Renderer* renderer, const Universe& universe, int ui_panel_width);
 	void resize(int width, int height, const Universe& universe);
+	void recenter();
 	void zoom(float zoom_delta, int mouse_x, int mouse_y, int width, int height);
 	void startDrag(int mouse_x, int mouse_y);
 	void updateDrag(int mouse_x, int mouse_y, int window_width, int window_height);

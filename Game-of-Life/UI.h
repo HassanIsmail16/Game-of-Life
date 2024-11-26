@@ -2,10 +2,13 @@
 #include <vector>
 #include <SDL.h>
 
+
+
 namespace UI {
 	class ScrollBar {
 	public:
 		ScrollBar(int width, int height, int min, int max, int value, bool vertical);
+		void render(SDL_Renderer* renderer);
 		void setValue(int value);
 
 	private:
@@ -21,23 +24,47 @@ namespace UI {
 
 	class Button {
 	public:
-		Button(int x, int y, int width, int height, std::string text);
+		enum class ID {
+			Play,
+			Stop,
+			Next,
+			Recenter,
+			Load,
+			Export,
+			Help,
+			Clear
+		};
+
+		Button(int x, int y, int width, int height, std::string text, ID id);
+		void render(SDL_Renderer* renderer);
+		bool isHovered(int mouse_x, int mouse_y);
+		void changeText(std::string text);
+		void onResize(int width, int height);
+		void setColor(SDL_Color color);
+		void setID(ID id);
+		ID getID();
+
 
 	private:
-
-	};
-
-	class RadioButton {
-	public:
-		RadioButton(int x, int y, int radius, std::vector<RadioButton*> radios, std::string text);
-
-	private:
-
-
+		int x;
+		int y;
+		int width;
+		int height;
+		std::string text;
+		SDL_Color color;
+		ID id;
 	};
 
 	class Slider {
 	public:
-		Slider(int x, int y, int width, int height, int min, int max, int value);	};
+		Slider(int x, int y, int width, int height, int min, int max, int value);
+		void render(SDL_Renderer* renderer);
+		bool isKnobHovered(int mouse_x, int mouse_y);
+		bool isBodyHovered(int mouse_x, int mouse_y);
 
+
+	private:
+		// knob
+		// body
+	};
 }
