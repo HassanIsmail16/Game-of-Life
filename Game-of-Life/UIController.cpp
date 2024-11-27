@@ -369,6 +369,7 @@ bool UIController::isInsidePanel(int mouse_x, int mouse_y) {
 }
 
 void UIController::render(SDL_Renderer* renderer) {
+	std::cout << 100 << std::endl;
 	SDL_Rect panel = {
 		this->window_width - this->panel_width,
 		0,
@@ -376,17 +377,24 @@ void UIController::render(SDL_Renderer* renderer) {
 		this->window_height
 	};
 
+	std::cout << 101 << std::endl;
+
+
 	SDL_SetRenderDrawColor(renderer, 249, 252, 223, 255);
 	SDL_RenderFillRect(renderer, &panel);
+
+	std::cout << 102 << std::endl;
 
 
 	for (auto& button : this->buttons) {
 		button->render(renderer);
 	}
 
+	std::cout << 103 << std::endl;
 	for (auto& textbox : this->textboxes) {
 		textbox->render(renderer);
 	}
+
 
 	this->speed_slider->render(renderer);
 }
