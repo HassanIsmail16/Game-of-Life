@@ -286,7 +286,8 @@ void UIController::handleInput(const SDL_Event& event) {
 		}
 
 		if (textbox->isFocused() && event.type == SDL_TEXTINPUT) {
-			if (isdigit(event.text.text[0])) {
+			// Check if the character is a digit using a direct comparison
+			if (event.text.text[0] >= '0' && event.text.text[0] <= '9') {
 				// Get current text
 				std::string current_text = textbox->getText();
 
@@ -523,7 +524,7 @@ void UIController::help_RenderText(const char* text, int x, int y) {
 		return;  // Exit if the text is empty
 	}
 	TTF_Font* font = TTF_OpenFont("arial.ttf", 14);
-	SDL_Color color = {255, 255, 255}; // White color
+	SDL_Color color = {220, 220, 220}; // Light gray color for better readability
 	SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
 	SDL_Texture* texture = SDL_CreateTextureFromSurface(help_renderer, surface);
 	SDL_Rect dstRect = {x, y, surface->w, surface->h};
@@ -535,27 +536,39 @@ void UIController::help_RenderText(const char* text, int x, int y) {
 }
 
 void UIController::help_RenderContent() {
-	const char* helpText[] = {
-		"- Make a cell alive by left clicking in its position",
-		"- Make a cell die by right clicking in its position",
-		"- Pan around the grid by moving the mouse while holding down the scroll button",
-		"- Zoom in and out of the grid by moving your mouse's scrollwheel up and down",
-		"- Increase and decrease your brush size by pressing ']' and '[' or moving the scroll wheel up and down while holding ctrl",
-		"- Press the play button to run the simulation",
-		"- Control the playback speed using the slider at the bottom of the side panel",
-		"",
-		"- If a cell is alive and has fewer than 2 alive neighbors it'll die",
-		"- If a cell is alive and has 2 or 3 alive neighbors it'll live",
-		"- If a cell is alive and has more than 3 alive neighbors it'll die",
-		"- If a cell is dead and has exactly three alive neighbors it'll become alive"
+	// Set a background color (dark background for better readability)
+	SDL_SetRenderDrawColor(help_renderer, 30, 30, 30, 255);  // Dark gray background
+	SDL_RenderClear(help_renderer);
+
+	const struct HelpEntry {
+		const char* text;
+		IconType icon;
+	} helpText[] = {
+		{"Make a cell alive by left clicking in its position", IconType::Left},
+		{"Make a cell die by right clicking in its position", IconType::Right},
+		{"Pan around the grid by moving the mouse while holding down the scroll button", IconType::Pan},
+		{"Zoom in and out of the grid by moving your mouse's scrollwheel up and down", IconType::Scroll},
+		{"Increase and decrease your brush size by pressing ']' and '[' or moving the scroll wheel up and down while holding ctrl", IconType::Scroll},
+		{"Press the play button to run the simulation", IconType::Play},
+		{"Control the playback speed using the slider at the bottom of the side panel", IconType::Speed},
+		{"", IconType::None},  // Empty line
+		{"If a cell is alive and has fewer than 2 alive neighbors it'll die", IconType::Cell},
+		{"If a cell is alive and has 2 or 3 alive neighbors it'll live", IconType::Cell},
+		{"If a cell is alive and has more than 3 alive neighbors it'll die", IconType::Cell},
+		{"If a cell is dead and has exactly three alive neighbors it'll become alive", IconType::Cell}
 	};
 
 	int yPos = 20;
-	for (int i = 0; i < 12; ++i) {
-		this->help_RenderText(helpText[i], 20, yPos);
+	for (const auto& entry : helpText) {
+		if (strlen(entry.text) > 0) {
+			// Render icon
+			help_RenderIcon(entry.icon, 5, yPos);
+
+			// Render text (shifted right to make space for icon)
+			this->help_RenderText(entry.text, 30, yPos);
+		}
 		yPos += 30; // Move down for the next line
 	}
-
 }
 
 void UIController::help_handleInput(SDL_Event& event) {
@@ -583,6 +596,62 @@ void UIController::help_handleInput(SDL_Event& event) {
 	}
 }
 
+void UIController::help_RenderIcon(IconType type, int x, int y) {
+	// Paths to icon images
+	static const char* iconPaths[] = {
+		"left-click.png",      // left click icon 0
+		"right-click.png",     // right click icon 1
+		"pan.png",			   // pan icon 2
+		"scroll.png",          // scroll icon 3
+		"play.png",			   // play icon 4
+		"speed.png",		   // speed icon 5
+		"cell.png"			   // cell icon 6
+	};
+
+	// Ensure the icon type is within bounds
+	if (type == IconType::None || type < IconType::Left || type > IconType::Cell) {
+		return;
+	}
+
+	// Load the image
+	SDL_Surface* iconSurface = IMG_Load(iconPaths[static_cast<int>(type) - 1]);
+	if (!iconSurface) {
+		// Error handling if image fails to load
+		std::cerr << "Failed to load icon: " << iconPaths[static_cast<int>(type) - 1]
+			<< " Error: " << IMG_GetError() << std::endl;
+		return;
+	}
+
+	// Create texture from surface
+	SDL_Texture* iconTexture = SDL_CreateTextureFromSurface(help_renderer, iconSurface);
+	if (!iconTexture) {
+		std::cerr << "Failed to create texture: " << SDL_GetError() << std::endl;
+		SDL_FreeSurface(iconSurface);
+		return;
+	}
+
+	// Define destination rectangle
+	SDL_Rect destRect = {x, y, 20, 20};  // Adjust size as needed
+
+	// Render the texture
+	SDL_RenderCopy(help_renderer, iconTexture, NULL, &destRect);
+
+	// Clean up
+	SDL_DestroyTexture(iconTexture);
+	SDL_FreeSurface(iconSurface);
+}
+
+void UIController::SDL_RenderDrawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
+	for (int w = 0; w < radius * 2; w++) {
+		for (int h = 0; h < radius * 2; h++) {
+			int dx = radius - w;
+			int dy = radius - h;
+			if ((dx * dx + dy * dy) <= (radius * radius)) {
+				SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
+			}
+		}
+	}
+}
 
 void UIController::adjustGridSizeTextboxValues() {
 	int width = this->textboxes[0]->getValue();

@@ -33,6 +33,7 @@ void UI::Button::render(SDL_Renderer* renderer) {
 	SDL_RenderCopy(renderer, text_texture, nullptr, &text_rect);
 	SDL_FreeSurface(text_surface);
 	SDL_DestroyTexture(text_texture);
+	TTF_CloseFont(font);
 }
 
 
@@ -80,9 +81,9 @@ void UI::Slider::render(SDL_Renderer* renderer) {
 	// slider body
 	SDL_Rect body = {
 		this->x,
-		this->y,
+		this->y + 2 * this->height / 4,
 		this->width,
-		this->height
+		this->height / 4
 	};
 
 	// slider knob
@@ -119,10 +120,10 @@ void UI::Slider::setKnobPosition(int mouse_x) {
 }
 
 SDL_Rect UI::Slider::getKnobRect() {
-	int knob_x = ((double) this->value / this->max) * this->width + this->x;
-	int knob_y = this->y;
-	int knob_width = ((double) this->width / this->max);
-	int knob_height = this->height;
+	int knob_x = ((double) this->value / this->max) * this->width + this->x - 2.5;
+	int knob_y = this->y + 7;
+	int knob_width = ((double) this->width / this->max) + 10;
+	int knob_height = this->height / 2 + 5;
 
 	return SDL_Rect{knob_x, knob_y, knob_width, knob_height};
 }

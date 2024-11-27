@@ -10,6 +10,16 @@
 
 class UIController {
 public:
+	enum class IconType {
+		None,
+		Left,
+		Right,
+		Pan,
+		Scroll,
+		Play,
+		Speed,
+		Cell
+	};
 	UIController(Universe* universe, int window_width, int window_height, GridView* grid_view);
 	void handleInput(const SDL_Event& event);
 	void onWindowResize(int window_width, int window_height);
@@ -37,6 +47,8 @@ private:
 	void help_RenderText(const char* text, int x, int y);
 	void help_RenderContent();
 	
+	void help_RenderIcon(IconType type, int x, int y);
+	void SDL_RenderDrawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius);
 	void adjustGridSizeTextboxValues();
 
 	Universe* universe;
@@ -64,5 +76,7 @@ private:
 	SDL_Window* help_window = nullptr;
 	SDL_Renderer* help_renderer = nullptr;
 	bool help_window_open = false;
+
+
 };
 

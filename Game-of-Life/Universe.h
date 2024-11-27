@@ -28,7 +28,7 @@ public:
 
 	mutable std::mutex grid_mutex;
 	Grid grid;
-
+	
 	void initialize(int width, int height, int percent);
 private:
 	Grid createEmptyGrid(int width, int height);

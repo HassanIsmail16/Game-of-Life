@@ -103,12 +103,9 @@ void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width
 	float new_zoom_factor = std::clamp(this->zoom_factor + zoom_delta, 0.5f, 3.0f);
 	if (new_zoom_factor == this->zoom_factor) return;
 
-	// Convert mouse position to grid coordinates before zoom
+	// Calculate mouse position relative to the grid before zoom
 	float pre_zoom_grid_x = (mouse_x - this->offset_x) / static_cast<float>(this->cell_size);
 	float pre_zoom_grid_y = (mouse_y - this->offset_y) / static_cast<float>(this->cell_size);
-
-	// Store old cell size for ratio calculation
-	float old_cell_size = this->cell_size;
 
 	// Update zoom factor and cell size
 	this->zoom_factor = new_zoom_factor;
@@ -127,20 +124,16 @@ void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width
 	int grid_width = universe_width * this->cell_size;
 	int grid_height = universe_height * this->cell_size;
 
-	// Center grid if smaller than window
-	if (grid_width <= window_width) {
-		this->recenter();
-	} else {
-		this->offset_x = std::clamp(this->offset_x, -(grid_width - window_width), 0);
-	}
+	// Always clamp offsets to prevent grid from completely leaving the screen
+	this->offset_x = std::clamp(this->offset_x,
+		std::min(window_width - grid_width, 0),
+		std::max(0, window_width - grid_width));
 
-	if (grid_height <= window_height) {
-		this->recenter();
-	} else {
-		this->offset_y = std::clamp(this->offset_y, -(grid_height - window_height), 0);
-	}
+	this->offset_y = std::clamp(this->offset_y,
+		std::min(window_height - grid_height, 0),
+		std::max(0, window_height - grid_height));
 
-	// Debug output
+	// Optional: Debug output
 	std::cout << "Zoom Factor: " << this->zoom_factor
 		<< ", Cell Size: " << this->cell_size
 		<< ", Offset X: " << this->offset_x
@@ -148,7 +141,6 @@ void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width
 		<< ", Grid Width: " << grid_width
 		<< ", Grid Height: " << grid_height << std::endl;
 }
-
 
 void GridView::startDrag(int mouse_x, int mouse_y) {
 	this->is_dragging = true;
@@ -168,19 +160,24 @@ void GridView::updateDrag(int mouse_x, int mouse_y, int window_width, int window
 	int new_offset_x = this->offset_x + (mouse_x - this->drag_start_x);
 	int new_offset_y = this->offset_y + (mouse_y - this->drag_start_y);
 
-	// If grid is smaller than window, center it
-	if (grid_width <= window_width) {
-		this->recenter();
-	} else {
-		// Bound the offset so the grid stays within limits
+	// Horizontal panning
+	if (grid_width > window_width) {
+		// Full horizontal panning within bounds
 		this->offset_x = std::clamp(new_offset_x, -(grid_width - window_width), 0);
+	} else if (grid_width < window_width) {
+		// Partial horizontal panning allowed
+		int max_pan_x = std::max(0, window_width - grid_width);
+		this->offset_x = std::clamp(new_offset_x, -max_pan_x, max_pan_x);
 	}
 
-	if (grid_height <= window_height) {
-		this->recenter();
-	} else {
-		// Bound the offset so the grid stays within limits
+	// Vertical panning
+	if (grid_height > window_height) {
+		// Full vertical panning within bounds
 		this->offset_y = std::clamp(new_offset_y, -(grid_height - window_height), 0);
+	} else if (grid_height < window_height) {
+		// Partial vertical panning allowed
+		int max_pan_y = std::max(0, window_height - grid_height);
+		this->offset_y = std::clamp(new_offset_y, -max_pan_y, max_pan_y);
 	}
 
 	// Update drag start position
@@ -258,7 +255,7 @@ void GridView::renderBrush(SDL_Renderer* renderer) {
 	};
 
 	// Draw the brush rectangle
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+	SDL_SetRenderDrawColor(renderer, 0, 150, 150, 255);
 	SDL_RenderDrawRect(renderer, &brush);
 }
 

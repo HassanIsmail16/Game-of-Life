@@ -37,25 +37,28 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 }
 
 void Universe::nextGeneration() {
-	//std::lock_guard<std::mutex> lock(grid_mutex);
-	auto new_grid = this->grid;
+	// Create a temporary 2D vector to store the next state
+	Grid next_grid(this->getHeight(), std::vector<CellState>(this->getWidth(), CellState::Dead));
 
 	for (int i = 0; i < this->getHeight(); i++) {
 		for (int j = 0; j < this->getWidth(); j++) {
 			int neighbors = this->countNeighbors(j, i);
 			if (this->grid[i][j] == CellState::Alive) {
 				if (neighbors < 2 || neighbors > 3) {
-					new_grid[i][j] = CellState::Dead;
+					next_grid[i][j] = CellState::Dead;
+				} else {
+					next_grid[i][j] = CellState::Alive;
 				}
 			} else {
 				if (neighbors == 3) {
-					new_grid[i][j] = CellState::Alive;
+					next_grid[i][j] = CellState::Alive;
 				}
 			}
 		}
 	}
 
-	this->grid = std::move(new_grid);
+	// Replace the old grid with the new one
+	this->grid = std::move(next_grid);
 }
 
 void Universe::setCellState(int cell_x, int cell_y, CellState state) {
