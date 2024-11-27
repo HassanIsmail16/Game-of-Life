@@ -21,16 +21,18 @@ public:
 	CellState getCellState(int cell_x, int cell_y) const;
 	int getWidth() const;
 	int getHeight() const;
+	void setGridSize(int width, int height);
 	void loadFromFile(std::string& filename);
 	void exportToFile(std::string& filename);
-	void display();
-	void setGridSize(int width, int height);
+	void display(); // for debug reasons
+	void initialize(int width, int height, int percent); // initialize a random grid
+	Grid copyGrid();
 
-	mutable std::mutex grid_mutex;
-	Grid grid;
+	mutable std::mutex grid_mutex; // for thread safety
 	
-	void initialize(int width, int height, int percent);
 private:
 	Grid createEmptyGrid(int width, int height);
+	
+	Grid grid;
 };
 

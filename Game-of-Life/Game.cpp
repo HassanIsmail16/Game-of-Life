@@ -40,7 +40,7 @@ void Game::init() {
     this->universe = new Universe(20, 20, 20);
     this->grid_view = new GridView(universe);
     this->ui_ctrl = new UIController(universe, 800, 600, grid_view);
-    this->input_handler = new InputHandler(ui_ctrl, grid_view, universe);
+    this->input_handler = new GridController(ui_ctrl, grid_view, universe);
 
     SDL_StartTextInput(); // initialize text input
     this->is_running = true;

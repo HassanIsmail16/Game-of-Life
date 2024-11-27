@@ -1,10 +1,9 @@
 	#pragma once
 	#include <SDL.h>
 	#include "Universe.h"
-	#include "InputHandler.h"
+	#include "GridController.h"
 	#include "UIController.h"
 	#include <iostream>
-
 
 	class Game {
 	public:
@@ -23,7 +22,7 @@
 		Universe* universe;
 		GridView* grid_view;
 		UIController* ui_ctrl;
-		InputHandler* input_handler;
+		GridController* input_handler;
 
 		bool is_running;
 	};

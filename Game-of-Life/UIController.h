@@ -7,9 +7,57 @@
 #include <SDL_image.h>
 #include "GridView.h"
 
-
 class UIController {
 public:
+	UIController(Universe* universe, int window_width, int window_height, GridView* grid_view);
+
+#pragma region Rendering & UI
+public:
+	// ---- methods ----
+	void render(SDL_Renderer* renderer);
+
+private:
+	// ---- attributes ----
+	GridView* grid_view;
+	Universe* universe;
+	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
+	UI::Slider* speed_slider;
+	std::vector<UI::NumericTextBox*> textboxes;
+
+
+	int panel_width;
+	int window_width;
+	int window_height;
+#pragma endregion
+
+#pragma region Input Handling
+public:
+	// ---- methods ----
+	void handleInput(const SDL_Event& event);
+	bool isInsidePanel(int mouse_x, int mouse_y);
+
+private:
+	void handleButtonInputs(const SDL_Event& event, int mouse_x, int mouse_y, uint32_t current_time, double elapsed_time);
+	void handleButtonAction(UI::Button* button);
+	void handleTextBoxInputs(const SDL_Event& event, int mouse_x, int mouse_y, uint32_t current_time, double elapsed_time);
+	void handleTextBoxFocus(const SDL_Event& event, int mouse_x, int mouse_y, UI::NumericTextBox* textbox, double elapsed_time);
+	void handleTextBoxUnfocus(UI::NumericTextBox* textbox);
+	int clampTextBoxValue(UI::NumericTextBox* textbox, int value);
+	void handleTextInput(const SDL_Event& event, UI::NumericTextBox* textbox);
+	void handleKeyDown(const SDL_Event& event, UI::NumericTextBox* textbox);
+	void adjustGridSizeTextboxValues();
+	void handleSliderInputs(const SDL_Event& event, int mouse_x, int mouse_y);
+	void updateSliderKnobColor(int mouse_x, int mouse_y);
+	void handleSliderDrag(const SDL_Event& event, int mouse_x, int mouse_y);
+
+	// ---- attributes ----
+	double action_time = 0.5;
+	uint32_t last_button_press = 0;
+	bool ignore_next_event = false;
+#pragma endregion
+
+#pragma region help
+public:	
 	enum class IconType {
 		None,
 		Left,
@@ -20,52 +68,54 @@ public:
 		Speed,
 		Cell
 	};
-	UIController(Universe* universe, int window_width, int window_height, GridView* grid_view);
-	void handleInput(const SDL_Event& event);
-	void onWindowResize(int window_width, int window_height);
-	bool isInsidePanel(int mouse_x, int mouse_y);
-	void render(SDL_Renderer* renderer);
-	int getPanelWidth();
-	void play();
-	void handlePlayStopButton();
-	
-	GridView* grid_view; // TODO: encapsulate
 
+	// ---- methods ----
 	bool isHelpWindowOpen();
 	void renderHelpWindow();
-
 	void help_handleInput(SDL_Event& event);
+
 private:
-	std::wstring openLoadFileDialog();
-	std::wstring openSaveFileDialog();
-	std::string convertWStringToString(const std::wstring& wstr);
-	void lockDestructiveButtons(bool locked);
-
-
 	void openHelpWindow();
 	void closeHelpWindow();
 	void help_RenderText(const char* text, int x, int y);
 	void help_RenderContent();
-	
 	void help_RenderIcon(IconType type, int x, int y);
-	void SDL_RenderDrawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius);
-	void adjustGridSizeTextboxValues();
 
-	Universe* universe;
-	std::vector<UI::Button*> buttons; // start, next, load, export, recenter, help
-	UI::Slider* speed_slider;
-	std::vector<UI::NumericTextBox*> textboxes;
+	// ---- attributes ----
+	SDL_Window* help_window = nullptr;
+	SDL_Renderer* help_renderer = nullptr;
+	bool help_window_open = false;
+#pragma endregion
 
-	double action_time = 0.5;
+#pragma region initialization
+	void init(Universe* universe, int window_width, int window_height, GridView* grid_view);
+	void initializeUIComponents();
+	void initializeButtons(int margin, float height, float button_width, float button_half_width, float x_first, float x_second);
+	void initializeTextBoxes(int margin, float height, float button_width, float button_half_width, float x_first, float x_second);
+	void initializeSlider(int margin, float height, float button_width, float button_half_width, float x_first, float x_second);
+#pragma endregion
 
-	int panel_width;
-	int window_width;
-	int window_height;
+#pragma region file dialog
+private:
+	// ---- methods ----
+	std::wstring openLoadFileDialog();
+	std::wstring openSaveFileDialog();
+	std::string convertWStringToString(const std::wstring& wstr);
 
-	uint32_t last_button_press = 0;
-	bool ignore_next_event = false;
-	bool isDialogOpen = false;
+	// ---- attributes ----
+	bool is_dialog_open = false;
+	static uint32_t dialog_close_time;
+	const uint32_t DIALOG_COOLDOWN = 200;
+#pragma endregion
 
+#pragma region play/stop
+private:
+	// ---- methods ----
+	void lockDestructiveButtons(bool locked);
+	void play();
+	void handlePlayStopButton();
+
+	// ---- attributes ----
 	double generations_per_second = 5.0f;
 	std::atomic<bool> is_playing = false;
 
@@ -73,10 +123,6 @@ private:
 	int requested_width{0};
 	int requested_height{0};
 
-	SDL_Window* help_window = nullptr;
-	SDL_Renderer* help_renderer = nullptr;
-	bool help_window_open = false;
-
-
+#pragma endregion
 };
 

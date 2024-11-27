@@ -1,7 +1,18 @@
 #include "UI.h"
 #include <algorithm>
+#include <windows.h>
+#include <string>
 #include <iostream>
 
+std::string UI::getExecutableDirectory() {
+	char path[MAX_PATH];
+	GetModuleFileNameA(NULL, path, MAX_PATH);
+	std::string exePath(path);
+	size_t pos = exePath.find_last_of("\\/");
+	return exePath.substr(0, pos); // get executable directory
+}
+
+#pragma region Button
 UI::Button::Button(int x, int y, int width, int height, std::string text, ID id) {
 	this->x = x;
 	this->y = y;
@@ -14,28 +25,9 @@ UI::Button::Button(int x, int y, int width, int height, std::string text, ID id)
 }
 
 void UI::Button::render(SDL_Renderer* renderer) {
-	SDL_Rect body = {
-		this->x,
-		this->y,
-		this->width,
-		this->height
-	};
-
-	SDL_SetRenderDrawColor(renderer, this->color.r, this->color.g, this->color.b, this->color.a);
-	SDL_RenderFillRect(renderer, &body);
-
-	TTF_Font* font = TTF_OpenFont("arialbd.ttf", 14);
-
-	SDL_Surface* text_surface = TTF_RenderText_Solid(font, this->text.c_str(), {font_color.r, font_color.g, font_color.b});
-	SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-	SDL_Rect text_rect = {this->x + (this->width - text_surface->w) / 2, this->y + (this->height - text_surface->h) / 2, text_surface->w, text_surface->h};
-	
-	SDL_RenderCopy(renderer, text_texture, nullptr, &text_rect);
-	SDL_FreeSurface(text_surface);
-	SDL_DestroyTexture(text_texture);
-	TTF_CloseFont(font);
+	this->renderBody(renderer);
+	this->renderText(renderer);
 }
-
 
 bool UI::Button::isHovered(int mouse_x, int mouse_y) {
 	return mouse_x >= this->x && mouse_x < this->x + this->width && mouse_y >= this->y && mouse_y < this->y + this->height;
@@ -67,6 +59,36 @@ bool UI::Button::isLocked() {
 	return this->locked;
 }
 
+void UI::Button::renderBody(SDL_Renderer* renderer) {
+	SDL_Rect body = {
+		this->x,
+		this->y,
+		this->width,
+		this->height
+	};
+
+	SDL_SetRenderDrawColor(renderer, this->color.r, this->color.g, this->color.b, this->color.a);
+	SDL_RenderFillRect(renderer, &body);
+}
+
+void UI::Button::renderText(SDL_Renderer* renderer) {
+	auto font_path = getExecutableDirectory() + "\\arialbd.ttf";
+	TTF_Font* font = TTF_OpenFont(font_path.c_str(), 14);
+
+	if (!font) std::cout << 124234 << std::endl;
+
+	SDL_Surface* text_surface = TTF_RenderText_Solid(font, this->text.c_str(), {font_color.r, font_color.g, font_color.b});
+	SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+	SDL_Rect text_rect = {this->x + (this->width - text_surface->w) / 2, this->y + (this->height - text_surface->h) / 2, text_surface->w, text_surface->h};
+
+	SDL_RenderCopy(renderer, text_texture, nullptr, &text_rect);
+	SDL_FreeSurface(text_surface);
+	SDL_DestroyTexture(text_texture);
+	TTF_CloseFont(font);
+}
+#pragma endregion
+
+#pragma region Slider
 UI::Slider::Slider(int x, int y, int width, int height, int min, int max, int value) {
 	this->x = x;
 	this->y = y;
@@ -78,23 +100,8 @@ UI::Slider::Slider(int x, int y, int width, int height, int min, int max, int va
 }
 
 void UI::Slider::render(SDL_Renderer* renderer) {
-	// slider body
-	SDL_Rect body = {
-		this->x,
-		this->y + 2 * this->height / 4,
-		this->width,
-		this->height / 4
-	};
-
-	// slider knob
-	SDL_Rect knob = this->getKnobRect();
-
-	// rendering
-	SDL_SetRenderDrawColor(renderer, 26, 26, 25, 255);
-	SDL_RenderFillRect(renderer, &body);
-
-	SDL_SetRenderDrawColor(renderer, this->knob_color.r, this->knob_color.g, this->knob_color.b, this->knob_color.a);
-	SDL_RenderFillRect(renderer, &knob);
+	this->renderBody(renderer);
+	this->renderKnob(renderer);
 }
 
 bool UI::Slider::isKnobHovered(int mouse_x, int mouse_y) {
@@ -132,6 +139,26 @@ void UI::Slider::setKnobColor(SDL_Color color) {
 	this->knob_color = color;
 }
 
+void UI::Slider::renderBody(SDL_Renderer* renderer) {
+	SDL_Rect body = {
+		this->x,
+		this->y + 2 * this->height / 4,
+		this->width,
+		this->height / 4
+	};
+
+	SDL_SetRenderDrawColor(renderer, 26, 26, 25, 255);
+	SDL_RenderFillRect(renderer, &body);
+}
+
+void UI::Slider::renderKnob(SDL_Renderer* renderer) {
+	SDL_Rect knob = this->getKnobRect();
+	SDL_SetRenderDrawColor(renderer, this->knob_color.r, this->knob_color.g, this->knob_color.b, this->knob_color.a);
+	SDL_RenderFillRect(renderer, &knob);
+}
+#pragma endregion
+
+#pragma region TextBox
 UI::NumericTextBox::NumericTextBox(int x, int y, int width, int height, int min, int max, int value, TTF_Font* font, std::string label, ID id) {
 	this->font = font;
 	this->label = label;
@@ -149,28 +176,9 @@ UI::NumericTextBox::NumericTextBox(int x, int y, int width, int height, int min,
 }
 
 void UI::NumericTextBox::render(SDL_Renderer* renderer) {
-	SDL_Surface* label_surface = TTF_RenderText_Solid(this->font, this->label.c_str(), {26, 26, 25, 255});
-	SDL_Texture* label_texture = SDL_CreateTextureFromSurface(renderer, label_surface);
-	SDL_Rect label_rect = {this->x, this->y - label_surface->h - 5, label_surface->w, label_surface->h};
-
-	SDL_RenderCopy(renderer, label_texture, nullptr, &label_rect);
-	SDL_FreeSurface(label_surface);
-	SDL_DestroyTexture(label_texture);
-
-	SDL_SetRenderDrawColor(renderer, this->color.r, this->color.g, this->color.b, this->color.a);
-	SDL_Rect box_rect = {this->x, this->y, this->width, this->height};
-	SDL_RenderDrawRect(renderer, &box_rect);
-
-	if (!this->text.empty()) {
-		SDL_Surface* text_surface = TTF_RenderText_Blended(this->font, this->text.c_str(), {26, 26, 25});
-		SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-		SDL_Rect text_rect = {this->x + 5, this->y + (this->height - text_surface->h) / 2, text_surface->w, text_surface->h};
-	
-		SDL_RenderCopy(renderer, text_texture, nullptr, &text_rect);
-		SDL_FreeSurface(text_surface);
-		SDL_DestroyTexture(text_texture);
-	}
-
+	this->renderLabel(renderer);
+	this->renderBody(renderer);
+	this->renderText(renderer);
 }
 
 bool UI::NumericTextBox::isHovered(int mouse_x, int mouse_y) {
@@ -189,17 +197,6 @@ int UI::NumericTextBox::getValue() {
 	return this->value;
 }
 
-bool UI::NumericTextBox::isValidText(std::string text) {
-	for (auto ch : text) {
-		if (!isdigit(ch)) {
-			return false;
-		}
-	}
-	
-	int value = std::stoi(text);
-	return value >= this->min && value <= this->max;
-}
-
 void UI::NumericTextBox::setText(std::string text) {
 	this->text = text;
 	this->value = std::clamp(std::stoi(text), this->min, this->max);
@@ -210,7 +207,7 @@ void UI::NumericTextBox::push_back(char ch) {
 }
 
 void UI::NumericTextBox::pop_back() {
-	if (this->text.empty()) return;
+	if (this->text.empty()) return; // don't do anything if empty
 	this->text.pop_back();
 }
 
@@ -225,3 +222,33 @@ void UI::NumericTextBox::setColor(SDL_Color color) {
 UI::NumericTextBox::ID UI::NumericTextBox::getID() {
 	return this->id;
 }
+
+void UI::NumericTextBox::renderLabel(SDL_Renderer* renderer) {
+	SDL_Surface* label_surface = TTF_RenderText_Solid(this->font, this->label.c_str(), {26, 26, 25, 255});
+	SDL_Texture* label_texture = SDL_CreateTextureFromSurface(renderer, label_surface);
+	SDL_Rect label_rect = {this->x, this->y - label_surface->h - 5, label_surface->w, label_surface->h};
+
+	SDL_RenderCopy(renderer, label_texture, nullptr, &label_rect);
+	SDL_FreeSurface(label_surface);
+	SDL_DestroyTexture(label_texture);
+}
+
+void UI::NumericTextBox::renderBody(SDL_Renderer* renderer) {
+	SDL_SetRenderDrawColor(renderer, this->color.r, this->color.g, this->color.b, this->color.a);
+	SDL_Rect box_rect = {this->x, this->y, this->width, this->height};
+	SDL_RenderDrawRect(renderer, &box_rect);
+}
+
+void UI::NumericTextBox::renderText(SDL_Renderer* renderer) {
+	if (!this->text.empty()) {
+		SDL_Surface* text_surface = TTF_RenderText_Blended(this->font, this->text.c_str(), {26, 26, 25});
+		SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+		SDL_Rect text_rect = {this->x + 5, this->y + (this->height - text_surface->h) / 2, text_surface->w, text_surface->h};
+
+		SDL_RenderCopy(renderer, text_texture, nullptr, &text_rect);
+		SDL_FreeSurface(text_surface);
+		SDL_DestroyTexture(text_texture);
+	}
+}
+
+#pragma endregion

@@ -157,7 +157,7 @@
   <ItemGroup>
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GridView.cpp" />
-    <ClCompile Include="InputHandler.cpp" />
+    <ClCompile Include="GridController.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="Universe.cpp" />
@@ -166,7 +166,7 @@
   <ItemGroup>
     <ClInclude Include="Game.h" />
     <ClInclude Include="GridView.h" />
-    <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="GridController.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="Universe.h" />

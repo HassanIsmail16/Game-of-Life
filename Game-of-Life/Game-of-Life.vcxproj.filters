@@ -24,7 +24,7 @@
     <ClCompile Include="UIController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InputHandler.cpp">
+    <ClCompile Include="GridController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GridView.cpp">
@@ -44,7 +44,7 @@
     <ClInclude Include="UIController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InputHandler.h">
+    <ClInclude Include="GridController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GridView.h">

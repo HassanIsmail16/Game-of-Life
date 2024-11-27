@@ -5,22 +5,7 @@
 
 
 namespace UI {
-	class ScrollBar {
-	public:
-		ScrollBar(int width, int height, int min, int max, int value, bool vertical);
-		void render(SDL_Renderer* renderer);
-		void setValue(int value);
-
-	private:
-		bool isInBounds(int value);
-
-		int width;
-		int height;
-		int min;
-		int max;
-		int value;
-		bool is_vertical;
-	};
+	std::string getExecutableDirectory();
 
 	class Button {
 	public:
@@ -41,7 +26,6 @@ namespace UI {
 		void render(SDL_Renderer* renderer);
 		bool isHovered(int mouse_x, int mouse_y);
 		void setText(std::string text);
-		void onResize(int width, int height);
 		void setColor(SDL_Color color);
 		void setID(ID id);
 		ID getID();
@@ -49,6 +33,9 @@ namespace UI {
 		bool isLocked();
 
 	private:
+		void renderBody(SDL_Renderer* renderer);
+		void renderText(SDL_Renderer* renderer);
+
 		int x;
 		int y;
 		int width;
@@ -71,7 +58,11 @@ namespace UI {
 		void setKnobPosition(int mouse_x);
 		SDL_Rect getKnobRect();
 		void setKnobColor(SDL_Color color);
+
 	private:
+		void renderBody(SDL_Renderer* renderer);
+		void renderKnob(SDL_Renderer* renderer);
+
 		int x;
 		int y;
 		int width;
@@ -97,7 +88,6 @@ namespace UI {
 		bool isFocused();
 		void setFocused(bool is_focused);
 		int getValue();
-		bool isValidText(std::string text);
 		void setText(std::string text);
 		void push_back(char ch);
 		void pop_back();
@@ -106,6 +96,10 @@ namespace UI {
 		ID getID();
 		
 	private:
+		void renderLabel(SDL_Renderer* renderer);
+		void renderBody(SDL_Renderer* renderer);
+		void renderText(SDL_Renderer* renderer);
+
 		int x;
 		int y;
 		int width;

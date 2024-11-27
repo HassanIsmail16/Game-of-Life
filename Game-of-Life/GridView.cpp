@@ -4,9 +4,6 @@
 
 GridView::GridView(Universe* universe) {
 	this->universe = universe;
-	this->horizontal_scrollbar = nullptr; // TODO: fix
-	this->vertical_scrollbar = nullptr;
-
 	this->offset_x = 0;
 	this->offset_y = 0;
 	this->is_dragging = false;
@@ -23,57 +20,57 @@ GridView::GridView(Universe* universe) {
 	this->recenter();
 }
 
-
+#pragma region Rendering
 void GridView::render(SDL_Renderer* renderer, Universe& universe, int ui_panel_width) {
-	// Additional safety: snapshot the grid dimensions at the start of rendering
+	// capture a snapshot of the current grid state
 	int rows, cols;
 	std::vector<std::vector<CellState>> grid_snapshot;
 
 	{
-		// Use a lock to safely copy the grid
-		std::lock_guard<std::mutex> lock(universe.grid_mutex); // Assuming you've added this mutex to Universe
+		// lock grid while taking a snapshot to prevent any other thread from modifying it
+		std::lock_guard<std::mutex> lock(universe.grid_mutex);
 		rows = universe.getHeight();
 		cols = universe.getWidth();
-
-		// Create a snapshot of the grid to render
-		grid_snapshot = universe.grid; // Assumes grid is copyable
+		grid_snapshot = universe.copyGrid(); 
 	}
 
+
 	SDL_SetRenderDrawColor(renderer, 200, 211, 180, 255); // grid line color
-	int render_width = this->window_width - ui_panel_width; // Exclude UI panel area
+	int render_width = this->window_width - ui_panel_width; // don't render a grid in ui panel area
 	int render_height = this->window_height;
 
-	// Render vertical grid lines
+
+	// render vertical grid lines
 	for (int x = 0; x <= cols; x++) {
 		int screen_x = this->offset_x + x * this->cell_size;
 		if (screen_x < 0 || screen_x >= render_width) continue; // Skip lines out of render bounds
 		SDL_RenderDrawLine(renderer, screen_x, this->offset_y, screen_x, this->offset_y + rows * this->cell_size);
 	}
 
-	// Render horizontal grid lines
+	// render horizontal grid lines
 	for (int y = 0; y <= rows; y++) {
 		int screen_y = this->offset_y + y * this->cell_size;
 		if (screen_y < 0 || screen_y >= render_height) continue; // Skip lines out of render bounds
 		SDL_RenderDrawLine(renderer, this->offset_x, screen_y, this->offset_x + cols * this->cell_size, screen_y);
 	}
 
-	// Render alive cells
+	// render alive cells
 	try {
 		for (int row = 0; row < rows; row++) {
 			for (int col = 0; col < cols; col++) {
+				// calculate screen position
 				int screen_x = this->offset_x + col * this->cell_size;
 				int screen_y = this->offset_y + row * this->cell_size;
 
-				// Skip cells completely out of bounds
+				// skip cells out of bounds
 				if (screen_x + this->cell_size <= 0 || screen_x >= render_width ||
 					screen_y + this->cell_size <= 0 || screen_y >= render_height) {
 					continue;
 				}
 
-				// Bounds check before accessing grid
+				// render if cell is in bounds
 				if (row >= 0 && row < grid_snapshot.size() &&
 					col >= 0 && col < grid_snapshot[row].size()) {
-					// If the cell is alive, render it
 					if (grid_snapshot[row][col] == CellState::Alive) {
 						SDL_Rect cell_rect = {
 							screen_x,
@@ -81,50 +78,58 @@ void GridView::render(SDL_Renderer* renderer, Universe& universe, int ui_panel_w
 							this->cell_size,
 							this->cell_size
 						};
-						SDL_SetRenderDrawColor(renderer, 252, 197, 45, 255); // alive cell color (green)
+
+						SDL_SetRenderDrawColor(renderer, 252, 197, 45, 255); // alive cell color (yellow)
 						SDL_RenderFillRect(renderer, &cell_rect);
 					}
 				}
 			}
 		}
 	} catch (const std::exception& e) {
-		std::cerr << "Rendering error: " << e.what() << std::endl;
+		std::cerr << "ERROR: Grid rendering error: " << e.what() << std::endl;
 	} catch (...) {
-		std::cerr << "Unknown rendering error" << std::endl;
+		std::cerr << "ERROR: Unknown grid rendering error" << std::endl;
 	}
 }
+
+int GridView::getCellSize() {
+	return this->cell_size;
+}
+#pragma endregion
+
+#pragma region Camera
 void GridView::recenter() {
 	this->offset_x = (this->window_width  - this->window_width / 4.0f - this->cell_size * this->universe->getWidth()) / 2;
 	this->offset_y = (this->window_height - this->cell_size * this->universe->getHeight()) / 2;
 }
 
 void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width, int window_height) {
-	// Calculate new zoom factor and check if it changed
+	// get new zoom factor
 	float new_zoom_factor = std::clamp(this->zoom_factor + zoom_delta, 0.5f, 3.0f);
-	if (new_zoom_factor == this->zoom_factor) return;
+	if (new_zoom_factor == this->zoom_factor) return; // exit if no change
 
-	// Calculate mouse position relative to the grid before zoom
+	// get mouse position int grid coordinates before zoom
 	float pre_zoom_grid_x = (mouse_x - this->offset_x) / static_cast<float>(this->cell_size);
 	float pre_zoom_grid_y = (mouse_y - this->offset_y) / static_cast<float>(this->cell_size);
 
-	// Update zoom factor and cell size
+	// update zoom factor and cell size
 	this->zoom_factor = new_zoom_factor;
 	this->cell_size = static_cast<int>(this->zoom_factor * 20);
 
-	// Calculate the mouse position in grid coordinates after zoom
+	// get mouse position int grid coordinates after zoom
 	float post_zoom_screen_x = pre_zoom_grid_x * this->cell_size;
 	float post_zoom_screen_y = pre_zoom_grid_y * this->cell_size;
 
-	// Adjust offsets to keep the mouse point stable
+	// update offsets
 	this->offset_x = mouse_x - post_zoom_screen_x;
 	this->offset_y = mouse_y - post_zoom_screen_y;
 
-	// Calculate grid dimensions
+	// get new grid dimensions
 	int universe_width = this->universe->getWidth(), universe_height = this->universe->getHeight();
 	int grid_width = universe_width * this->cell_size;
 	int grid_height = universe_height * this->cell_size;
 
-	// Always clamp offsets to prevent grid from completely leaving the screen
+	// clamp offsets to prevent grid from completely leaving the screen
 	this->offset_x = std::clamp(this->offset_x,
 		std::min(window_width - grid_width, 0),
 		std::max(0, window_width - grid_width));
@@ -132,14 +137,6 @@ void GridView::zoom(float zoom_delta, int mouse_x, int mouse_y, int window_width
 	this->offset_y = std::clamp(this->offset_y,
 		std::min(window_height - grid_height, 0),
 		std::max(0, window_height - grid_height));
-
-	// Optional: Debug output
-	std::cout << "Zoom Factor: " << this->zoom_factor
-		<< ", Cell Size: " << this->cell_size
-		<< ", Offset X: " << this->offset_x
-		<< ", Offset Y: " << this->offset_y
-		<< ", Grid Width: " << grid_width
-		<< ", Grid Height: " << grid_height << std::endl;
 }
 
 void GridView::startDrag(int mouse_x, int mouse_y) {
@@ -151,36 +148,36 @@ void GridView::startDrag(int mouse_x, int mouse_y) {
 void GridView::updateDrag(int mouse_x, int mouse_y, int window_width, int window_height) {
 	if (!this->is_dragging) return;
 
-	// Calculate grid dimensions
+	// get grid dimensions
 	int universe_width = this->universe->getWidth(), universe_height = this->universe->getHeight();
 	int grid_width = universe_width * this->cell_size;
 	int grid_height = universe_height * this->cell_size;
 
-	// Calculate new offsets
+	// get new offsets
 	int new_offset_x = this->offset_x + (mouse_x - this->drag_start_x);
 	int new_offset_y = this->offset_y + (mouse_y - this->drag_start_y);
 
-	// Horizontal panning
+	// handle horizontal panning
 	if (grid_width > window_width) {
-		// Full horizontal panning within bounds
+		// full horizontal panning if in bounds
 		this->offset_x = std::clamp(new_offset_x, -(grid_width - window_width), 0);
 	} else if (grid_width < window_width) {
-		// Partial horizontal panning allowed
+		// partial horizontal panning if out of bounds
 		int max_pan_x = std::max(0, window_width - grid_width);
 		this->offset_x = std::clamp(new_offset_x, -max_pan_x, max_pan_x);
 	}
 
-	// Vertical panning
+	// handle vertical panning
 	if (grid_height > window_height) {
-		// Full vertical panning within bounds
+		// full vertical panning if in bounds
 		this->offset_y = std::clamp(new_offset_y, -(grid_height - window_height), 0);
 	} else if (grid_height < window_height) {
-		// Partial vertical panning allowed
+		// partial vertical panning if out of bounds
 		int max_pan_y = std::max(0, window_height - grid_height);
 		this->offset_y = std::clamp(new_offset_y, -max_pan_y, max_pan_y);
 	}
 
-	// Update drag start position
+	// update drag start position
 	this->drag_start_x = mouse_x;
 	this->drag_start_y = mouse_y;
 }
@@ -188,30 +185,36 @@ void GridView::updateDrag(int mouse_x, int mouse_y, int window_width, int window
 void GridView::stopDrag() {
 	this->is_dragging = false;
 }
+#pragma endregion
 
+#pragma region Drawing
 void GridView::setCellState(int mouse_x, int mouse_y, CellState state) {
+	// get cell at mouse position
 	int cell_x = (mouse_x - this->offset_x) / this->cell_size;
 	int cell_y = (mouse_y - this->offset_y) / this->cell_size;
 
 	if (cell_x < 0 || cell_x >= this->universe->getWidth() || cell_y < 0 || cell_y >= this->universe->getHeight()) {
 		return;
-	}
-
+	} // exit if cell is out of bounds
+	
 	this->universe->setCellState(cell_y, cell_x, state);
 }
 
 void GridView::setStateAtBrush(CellState state) {
-	if (this->brush_x == -1 || this->brush_y == -1) return;
+	if (this->brush_x == -1 || this->brush_y == -1) return; // exit if brush is not set
 
+	// get brush grid coordinates
 	int brush_left = this->brush_x - this->cell_size * this->brush_size / 2;
 	int brush_top = this->brush_y - this->cell_size * this->brush_size / 2;
 
+	// set cell states covered by brush
 	for (int x = 0; x < this->brush_size; ++x) {
 		for (int y = 0; y < this->brush_size; ++y) {
+			// get cell coordinates
 			int cell_x = (brush_left + x * this->cell_size - this->offset_x) / this->cell_size;
 			int cell_y = (brush_top + y * this->cell_size - this->offset_y) / this->cell_size;
 
-			// Ensure cell indices are within valid bounds
+			// set cell states if in bounds
 			if (cell_x >= 0 && cell_x < this->universe->getWidth() &&
 				cell_y >= 0 && cell_y < this->universe->getHeight()) {
 				this->universe->setCellState(cell_x, cell_y, state);
@@ -219,11 +222,6 @@ void GridView::setStateAtBrush(CellState state) {
 		}
 	}
 }
-
-int GridView::getCellSize() {
-	return this->cell_size;
-}
-
 void GridView::startDrawing() {
 	this->is_drawing = true;
 }
@@ -238,15 +236,15 @@ void GridView::setBrushPosition(int mouse_x, int mouse_y) {
 }
 
 void GridView::renderBrush(SDL_Renderer* renderer) {
-	if (this->brush_x == -1 || this->brush_y == -1) return;
+	if (this->brush_x == -1 || this->brush_y == -1) return; // exit if brush is not set
 
-	if (this->brush_x >= this->window_width - this->window_width / 4) return;
+	if (this->brush_x >= this->window_width - this->window_width / 4) return; // exit if cursor is inside ui side panel
 
-	// Convert the brush position from screen space to grid space
+	// get brush grid coordinates
 	float grid_brush_x = (this->brush_x - this->offset_x) / static_cast<float>(this->cell_size);
 	float grid_brush_y = (this->brush_y - this->offset_y) / static_cast<float>(this->cell_size);
 
-	// Calculate the position and size of the brush in screen space
+	// get brush rectangle
 	SDL_Rect brush = {
 		static_cast<int>(grid_brush_x * this->cell_size + this->offset_x) - (this->cell_size * this->brush_size) / 2,
 		static_cast<int>(grid_brush_y * this->cell_size + this->offset_y) - (this->cell_size * this->brush_size) / 2,
@@ -254,7 +252,7 @@ void GridView::renderBrush(SDL_Renderer* renderer) {
 		static_cast<int>(this->cell_size * this->brush_size)
 	};
 
-	// Draw the brush rectangle
+	// render brush rectangle
 	SDL_SetRenderDrawColor(renderer, 0, 150, 150, 255);
 	SDL_RenderDrawRect(renderer, &brush);
 }
@@ -267,11 +265,8 @@ void GridView::decreaseBrushSize() {
 	this->brush_size = std::max(this->brush_size - 1, 1);
 }
 
-void GridView::onWindowResize(int window_width, int window_height) {
-	this->window_width = window_width;
-	this->window_height = window_height;
-}
-
 bool GridView::isDrawing() {
 	return this->is_drawing;
 }
+
+#pragma endregion
