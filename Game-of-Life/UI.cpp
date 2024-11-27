@@ -72,10 +72,10 @@ void UI::Button::renderBody(SDL_Renderer* renderer) {
 }
 
 void UI::Button::renderText(SDL_Renderer* renderer) {
-	auto font_path = getExecutableDirectory() + "\\arialbd.ttf";
+	auto font_path = getExecutableDirectory() + "\\assets\\arialbd.ttf";
 	TTF_Font* font = TTF_OpenFont(font_path.c_str(), 14);
 
-	if (!font) std::cout << 124234 << std::endl;
+	if (!font) return; // exit if can't load font
 
 	SDL_Surface* text_surface = TTF_RenderText_Solid(font, this->text.c_str(), {font_color.r, font_color.g, font_color.b});
 	SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);

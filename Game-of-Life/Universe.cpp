@@ -94,12 +94,15 @@ void Universe::loadFromFile(std::string& filename) {
 		return;
 	} // exit if couldn't open file
 
-	int width = 0, height = 0;
-	if (!(file >> width >> height)) {
+	int read_width = 0, read_height = 0;
+	if (!(file >> read_width >> read_height)) {
 		std::cout << "ERROR: Couldn't read width and height" << std::endl;
 		return;
 	} // exit if now width or height
 
+	int width = std::clamp(read_width, 5, 100000); // clamp width to 5-100000
+	int height = std::clamp(read_height, 5, 10000000 / width); // clamp height to 5-10000000/width
+	
 	// skip newline after reading width and height
 	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -108,11 +111,11 @@ void Universe::loadFromFile(std::string& filename) {
 	
 	std::string current_line;
 	int row = 0; // current row
-
-	while (row < height && std::getline(file, current_line)) {
+	
+	while (row < std::min(read_height, height) && std::getline(file, current_line)) {
 		if (current_line.empty()) continue; // skip empty lines
 
-		for (int col = 0; col < std::min(static_cast<int>(current_line.length()), width); col++) {
+		for (int col = 0; col < std::min({static_cast<int>(current_line.length()), width, read_width}); col++) {
 			temp_grid[row][col] = (current_line[col] == '1') ? CellState::Alive : CellState::Dead;
 		} // set cell state
 

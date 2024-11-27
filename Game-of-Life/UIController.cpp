@@ -99,6 +99,9 @@ void UIController::handleButtonAction(UI::Button* button) {
 			std::string filename = this->convertWStringToString(this->openLoadFileDialog());
 			this->dialog_close_time = SDL_GetTicks();
 			this->universe->loadFromFile(filename);
+			this->grid_view->recenter();
+			this->textboxes[0]->setText(std::to_string(this->universe->getWidth()));
+			this->textboxes[1]->setText(std::to_string(this->universe->getHeight()));
 			break;
 		}
 
@@ -323,7 +326,7 @@ void UIController::help_RenderText(const char* text, int x, int y) {
 	} // exit if text is empty
 
 	// rendering
-	auto font_path = UI::getExecutableDirectory() + "\\arial.ttf";
+	auto font_path = UI::getExecutableDirectory() + "\\assets\\arial.ttf";
 	TTF_Font* font = TTF_OpenFont(font_path.c_str(), 14);
 	SDL_Color color = {220, 220, 220}; // text color
 	SDL_Surface* surface = TTF_RenderText_Blended(font, text, color);
@@ -345,8 +348,8 @@ void UIController::help_RenderContent() {
 		const char* text;
 		IconType icon;
 	} help_text[] = {
-		{"Make a cell alive by left clicking in its position", IconType::Left},
-		{"Make a cell die by right clicking in its position", IconType::Right},
+		{"Make a cell alive by left clicking in its position, you can also drag the mouse to paint", IconType::Left},
+		{"Make a cell die by right clicking in its position, you can also drag the mouse to erase", IconType::Right},
 		{"Pan around the grid by moving the mouse while holding down the scroll button", IconType::Pan},
 		{"Zoom in and out of the grid by moving your mouse's scrollwheel up and down", IconType::Scroll},
 		{"Increase and decrease your brush size by pressing ']' and '[' or moving the scroll wheel up and down while holding ctrl", IconType::Scroll},
@@ -380,13 +383,13 @@ void UIController::help_handleInput(SDL_Event& event) {
 
 void UIController::help_RenderIcon(IconType type, int x, int y) {
 	static const char* icon_paths[] = {
-		"left-click.png",      // left click icon
-		"right-click.png",     // right click icon
-		"pan.png",			   // pan icon
-		"scroll.png",          // scroll icon
-		"play.png",			   // play icon
-		"speed.png",		   // speed icon
-		"cell.png"			   // cell icon
+		"assets\\left-click.png",      // left click icon
+		"assets\\right-click.png",     // right click icon
+		"assets\\pan.png",			   // pan icon
+		"assets\\scroll.png",          // scroll icon
+		"assets\\play.png",			   // play icon
+		"assets\\speed.png",		   // speed icon
+		"assets\\cell.png"			   // cell icon
 	};
 
 	if (type == IconType::None || type < IconType::Left || type > IconType::Cell) {
@@ -459,7 +462,7 @@ void UIController::initializeButtons(int margin, float height, float button_widt
 }
 
 void UIController::initializeTextBoxes(int margin, float height, float button_width, float button_half_width, float x_first, float x_second) {
-	auto font_path = UI::getExecutableDirectory() + "\\arialbd.ttf";
+	auto font_path = UI::getExecutableDirectory() + "\\assets\\arialbd.ttf";
 	TTF_Font* font = TTF_OpenFont(font_path.c_str(), 14);
 	this->textboxes.emplace_back(new UI::NumericTextBox(x_first, 6 * margin + 5 * height + 15, button_width, height, 5, 1e5, this->universe->getWidth(), font, "Grid Width", UI::NumericTextBox::ID::Width));
 	this->textboxes.emplace_back(new UI::NumericTextBox( x_first, 7 * margin + 6 * height + 35, button_width, height, 5, 1e5, this->universe->getHeight(), font, "Grid Height", UI::NumericTextBox::ID::Height));
