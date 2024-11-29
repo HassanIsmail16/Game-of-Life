@@ -23,5 +23,5 @@ This is an implementation of John Conway's Game of Life.
 
 ## How to Run
 - You can build the executable directly using Visual Studio 2022. The project solution file is in the repository.
-- You can run the executable found in [the latest release in the repository](https://github.com/HassanIsmail16/Game-of-Life/releases/tag/Latest-Release) if you have the VC++ Redistributable Component.
+- You can run the executable found in [the latest release in the repository](https://github.com/HassanIsmail16/Game-of-Life/releases/tag/Latest) if you have the VC++ Redistributable Component.
 
