@@ -188,7 +188,7 @@ int UIController::clampTextBoxValue(UI::NumericTextBox* textbox, int value) {
 	if (textbox == this->textboxes[2]) {
 		return std::clamp(value, 0, 100);
 	} // clamp value in percentage textbox
-	return std::clamp(value, 5, 100000); // clamp value in grid size textboxes
+	return std::clamp(value, 5, 100000); // clamp value in simulation_grid size textboxes
 }
 
 void UIController::handleTextInput(const SDL_Event& event, UI::NumericTextBox* textbox) {
@@ -206,7 +206,7 @@ void UIController::handleTextInput(const SDL_Event& event, UI::NumericTextBox* t
 				}
 			}
 		} else {
-			// handle grid size textboxes
+			// handle simulation_grid size textboxes
 			int other_index = (textbox == this->textboxes[0]) ? 1 : 0;
 			std::string other_text = this->textboxes[other_index]->getText(); // get other textbox value
 			int max_digits = 7 - other_text.length(); // get maximum allowed number of digits in current textbox
@@ -554,6 +554,7 @@ void UIController::play() {
 		auto start_time = std::chrono::steady_clock::now(); // record cycle start time
 
 		this->universe->nextGeneration(); // procceed to next generation every cycle
+		this->universe->updateRenderingGrid(); // sync rendering grid
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(
 			static_cast<int>(1000 / this->generations_per_second))

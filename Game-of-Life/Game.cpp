@@ -11,7 +11,7 @@ void Game::run() {
     while (this->is_running) {
         this->handleEvents();
         this->render();
-        SDL_Delay(16);
+        SDL_Delay(10);
     } // game loop
     this->cleanup();
 }
@@ -64,7 +64,7 @@ void Game::render() {
     SDL_SetRenderDrawColor(this->renderer, 26, 26, 25, 255); // background color
     SDL_RenderClear(this->renderer); // clear renderer
 
-    this->grid_view->render(this->renderer, *(this->universe), 200); // render grid
+    this->grid_view->render(this->renderer, *(this->universe), 200); // render simulation_grid
     this->grid_view->renderBrush(this->renderer); // render brush
     this->ui_ctrl->render(this->renderer); // render menu
 

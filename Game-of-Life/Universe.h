@@ -25,14 +25,16 @@ public:
 	void loadFromFile(std::string& filename);
 	void exportToFile(std::string& filename);
 	void display(); // for debug reasons
-	void initialize(int width, int height, int percent); // initialize a random grid
-	Grid copyGrid();
+	void initialize(int width, int height, int percent); // initialize a random simulation_grid
+	void updateRenderingGrid();
+	const Grid& getRenderingGrid();
 
 	mutable std::mutex grid_mutex; // for thread safety
 	
 private:
 	Grid createEmptyGrid(int width, int height);
 	
-	Grid grid;
+	Grid simulation_grid;
+	Grid rendering_grid;
 };
 

@@ -9,7 +9,7 @@ void GridController::handleInput(const SDL_Event& event, int width, int height) 
         return;
     } // mouse is inside ui panel
 
-    SDL_ShowCursor(SDL_DISABLE); // hide cursor if inside grid
+    SDL_ShowCursor(SDL_DISABLE); // hide cursor if inside simulation_grid
 
     // handle zooming and changing brush size
     if (event.type == SDL_MOUSEWHEEL) {
@@ -81,7 +81,7 @@ void GridController::handleMouseMotion(const SDL_Event& event, int mouse_x, int 
 
     if (event.motion.state & SDL_BUTTON_MMASK) {
         this->grid_view->updateDrag(mouse_x, mouse_y, width, height);
-    } // if scroll button down and mouse moves, pan around the grid
+    } // if scroll button down and mouse moves, pan around the simulation_grid
 
     this->grid_view->setBrushPosition(mouse_x, mouse_y); // change brush position to mouse position
 }

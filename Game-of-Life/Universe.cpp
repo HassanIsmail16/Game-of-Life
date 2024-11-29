@@ -12,9 +12,10 @@ void Universe::reset() {
 	// set all cells to dead
 	for (int i = 0; i < this->getHeight(); i++) {
 		for (int j = 0; j < this->getWidth(); j++) {
-			this->grid[i][j] = CellState::Dead;
+			this->simulation_grid[i][j] = CellState::Dead;
 		}
 	}
+	this->rendering_grid = this->simulation_grid; // sync rendering grid
 }
 
 int Universe::countNeighbors(int cell_x, int cell_y) {
@@ -30,7 +31,7 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 				continue;
 			} // skip if out of bounds
 
-			if (this->grid[i][j] == CellState::Alive) {
+			if (this->simulation_grid[i][j] == CellState::Alive) {
 				count++;
 			} // count if in bounds
 		}
@@ -40,13 +41,14 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 }
 
 void Universe::nextGeneration() {
-	// create a temporary grid to store the next generation
+	std::lock_guard<std::mutex> lock(this->grid_mutex);
+	// create a temporary simulation_grid to store the next generation
 	Grid next_grid(this->getHeight(), std::vector<CellState>(this->getWidth(), CellState::Dead));
 
 	for (int i = 0; i < this->getHeight(); i++) {
 		for (int j = 0; j < this->getWidth(); j++) {
 			int neighbors = this->countNeighbors(j, i);
-			if (this->grid[i][j] == CellState::Alive) {
+			if (this->simulation_grid[i][j] == CellState::Alive) {
 				if (neighbors < 2 || neighbors > 3) {
 					next_grid[i][j] = CellState::Dead; // if cell is alive and has less than 2 or more than 3 alive neighbors, it'll become dead
 				} else {
@@ -60,31 +62,35 @@ void Universe::nextGeneration() {
 		}
 	}
 
-	// replace old grid with new grid
-	this->grid = std::move(next_grid);
+	// replace old simulation_grid with new simulation_grid
+	this->simulation_grid = std::move(next_grid);
 }
 
 void Universe::setCellState(int cell_x, int cell_y, CellState state) {
-	this->grid[cell_y][cell_x] = state;
+	{
+		std::lock_guard<std::mutex> lock(this->grid_mutex);
+		this->simulation_grid[cell_y][cell_x] = state;
+		this->rendering_grid[cell_y][cell_x] = state; // sync rendering grid
+	}
 }
 
 CellState Universe::getCellState(int cell_x, int cell_y) const {
-	std::lock_guard<std::mutex> lock(grid_mutex); // lock grid mutex for thread safety
+	std::lock_guard<std::mutex> lock(grid_mutex); // lock simulation_grid mutex for thread safety
 
 	if (cell_x >= 0 && cell_x < this->getWidth() && cell_y >= 0 && cell_y <= this->getHeight()) {
-		return this->grid[cell_y][cell_x];
+		return this->simulation_grid[cell_y][cell_x];
 	} // if requested cell is in bounds return its state
 
 	return CellState::Dead; // return dead if out of bounds
 }
 
 int Universe::getWidth() const {
-	if (this->grid.empty()) return 0; // return 0 if grid is empty
-	return this->grid.front().size();
+	if (this->simulation_grid.empty()) return 0; // return 0 if simulation_grid is empty
+	return this->simulation_grid.front().size();
 }
 
 int Universe::getHeight() const {
-	return this->grid.size();
+	return this->simulation_grid.size();
 }
 
 void Universe::loadFromFile(std::string& filename) {
@@ -106,7 +112,7 @@ void Universe::loadFromFile(std::string& filename) {
 	// skip newline after reading width and height
 	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-	// temporary grid to store file data
+	// temporary simulation_grid to store file data
 	Grid temp_grid(height, std::vector<CellState>(width, CellState::Dead));
 	
 	std::string current_line;
@@ -122,8 +128,13 @@ void Universe::loadFromFile(std::string& filename) {
 		row++; // move to next row
 	}
 
-	// set grid to new grid
-	this->grid = std::move(temp_grid);
+	{
+		std::lock_guard<std::mutex> lock(this->grid_mutex);
+
+		// set simulation_grid to new simulation_grid
+		this->simulation_grid = std::move(temp_grid);
+		this->rendering_grid = this->simulation_grid; // sync rendering grid
+	}
 }
 
 void Universe::exportToFile(std::string& filename) {
@@ -139,7 +150,7 @@ void Universe::exportToFile(std::string& filename) {
 	// write cell states
 	for (int i = 0; i < this->getHeight(); i++) {
 		for (int j = 0; j < this->getWidth(); j++) {
-			if (this->grid[i][j] == CellState::Alive) {
+			if (this->simulation_grid[i][j] == CellState::Alive) {
 				file << 1;
 			} else {
 				file << 0;
@@ -150,7 +161,7 @@ void Universe::exportToFile(std::string& filename) {
 }
 
 void Universe::display() {
-	for (auto row : this->grid) {
+	for (auto row : this->simulation_grid) {
 		for (auto cell : row) {
 			std::cout << (cell == CellState::Alive ? "1" : "0") << ' ';
 		}
@@ -170,14 +181,19 @@ void Universe::setGridSize(int width, int height) {
 		int copy_height = std::min(this->getHeight(), height);
 		int copy_width = std::min(this->getWidth(), width);
 
-		for (int i = 0; i < copy_height; i++) {
-			for (int j = 0; j < copy_width; j++) {
-				copy[i][j] = this->grid[i][j];
-			}
-		} // copy old grid to new grid
+		{
+			std::lock_guard<std::mutex> lock(this->grid_mutex);
 
-		// move new grid to old grid
-		this->grid = std::move(copy);
+			// copy old simulation_grid to the new grid
+			for (int i = 0; i < copy_height; i++) {
+				for (int j = 0; j < copy_width; j++) {
+					copy[i][j] = this->simulation_grid[i][j];
+				}
+			}
+
+			this->simulation_grid = std::move(copy); // update grid size
+			this->rendering_grid = this->simulation_grid; // sync rendering grid
+		}
 	} catch (const std::exception& e) {
 		std::cout << "ERROR: Exception during grid resize: " << e.what() << std::endl;
 	} catch (...) {
@@ -186,7 +202,7 @@ void Universe::setGridSize(int width, int height) {
 }
 
 void Universe::initialize(int width, int height, int percent) {
-	Grid grid = this->createEmptyGrid(width, height); // create empty grid
+	Grid grid = this->createEmptyGrid(width, height); // create empty simulation_grid
 
 	int total_cells = width * height; // total number of cells
 	int num_alive = static_cast<int>(total_cells * (percent / 100.0f)); // number of alive cells
@@ -207,15 +223,26 @@ void Universe::initialize(int width, int height, int percent) {
 			
 			grid[y][x] = CellState::Alive; // set cell to alive
 		}
-	}; // function to place a number of alive cells randomly on the grid
+	}; // function to place a number of alive cells randomly on the simulation_grid
 
 	placeRandomAlive(num_alive); // execute random placement
 	
-	this->grid = std::move(grid); // set current grid to the randomly generated grid
+	{
+		std::lock_guard<std::mutex> lock(this->grid_mutex);
+		this->simulation_grid = std::move(grid); // set the simulation grid
+		this->rendering_grid = this->simulation_grid; // sync rendering grid
+	}
 }
 
-Grid Universe::copyGrid() {
-	return this->grid;
+
+void Universe::updateRenderingGrid() {
+	std::lock_guard<std::mutex> lock(this->grid_mutex);
+	this->rendering_grid = this->simulation_grid;
+}
+
+const Grid& Universe::getRenderingGrid() {
+	std::lock_guard<std::mutex> lock(this->grid_mutex);
+	return this->rendering_grid;;
 }
 
 Grid Universe::createEmptyGrid(int width, int height) {
