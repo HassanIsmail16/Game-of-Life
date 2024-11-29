@@ -26,7 +26,6 @@ public:
 	void exportToFile(std::string& filename);
 	void display(); // for debug reasons
 	void initialize(int width, int height, int percent); // initialize a random simulation_grid
-	void updateRenderingGrid();
 	const Grid& getRenderingGrid();
 
 	mutable std::mutex grid_mutex; // for thread safety

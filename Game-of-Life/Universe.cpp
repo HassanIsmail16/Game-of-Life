@@ -42,6 +42,7 @@ int Universe::countNeighbors(int cell_x, int cell_y) {
 
 void Universe::nextGeneration() {
 	std::lock_guard<std::mutex> lock(this->grid_mutex);
+
 	// create a temporary simulation_grid to store the next generation
 	Grid next_grid(this->getHeight(), std::vector<CellState>(this->getWidth(), CellState::Dead));
 
@@ -64,6 +65,9 @@ void Universe::nextGeneration() {
 
 	// replace old simulation_grid with new simulation_grid
 	this->simulation_grid = std::move(next_grid);
+
+	// Update the rendering grid to reflect the new state
+	this->rendering_grid = this->simulation_grid;
 }
 
 void Universe::setCellState(int cell_x, int cell_y, CellState state) {
@@ -232,12 +236,6 @@ void Universe::initialize(int width, int height, int percent) {
 		this->simulation_grid = std::move(grid); // set the simulation grid
 		this->rendering_grid = this->simulation_grid; // sync rendering grid
 	}
-}
-
-
-void Universe::updateRenderingGrid() {
-	std::lock_guard<std::mutex> lock(this->grid_mutex);
-	this->rendering_grid = this->simulation_grid;
 }
 
 const Grid& Universe::getRenderingGrid() {

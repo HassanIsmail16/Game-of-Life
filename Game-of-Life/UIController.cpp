@@ -553,8 +553,7 @@ void UIController::play() {
 
 		auto start_time = std::chrono::steady_clock::now(); // record cycle start time
 
-		this->universe->nextGeneration(); // procceed to next generation every cycle
-		this->universe->updateRenderingGrid(); // sync rendering grid
+		this->universe->nextGeneration(); // proceed to next generation every cycle
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(
 			static_cast<int>(1000 / this->generations_per_second))
@@ -563,7 +562,7 @@ void UIController::play() {
 		auto end_time = std::chrono::steady_clock::now(); // record cycle end time
 
 		auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count(); // measure time taken in cycle processing
-		
+
 		if (elapsed_time < (1000 / this->generations_per_second)) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((1000 / this->generations_per_second)) - elapsed_time));
 		} // sleep for remaining time
