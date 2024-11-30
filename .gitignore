@@ -396,3 +396,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# SDL
+!/SDL2/lib/*
+!/SDL2/include/*
+!/SDL2_image-2.8.2/lib/*
+!/SDL2_image-2.8.2/include/*
+!/SDL2TTF/lib/*
+!/SDL2TTF/include/*
