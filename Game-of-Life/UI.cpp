@@ -5,11 +5,7 @@
 #include <iostream>
 
 std::string UI::getExecutableDirectory() {
-	char path[MAX_PATH];
-	GetModuleFileNameA(NULL, path, MAX_PATH);
-	std::string exePath(path);
-	size_t pos = exePath.find_last_of("\\/");
-	return exePath.substr(0, pos); // get executable directory
+	return std::filesystem::current_path().string();
 }
 
 #pragma region Button
